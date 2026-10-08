@@ -1,0 +1,9 @@
+mirror/
+.mirror/
+work/
+outputs/
+__pycache__/
+*.pyc
+*.part
+*.zip
+.DS_Store

@@ -1,0 +1,16 @@
+{
+  "checks": [
+    "Python syntax, zsh syntax and executable launcher permissions",
+    "Upstream README preserved verbatim; original credits and bottom Telegram link retained",
+    "Public package contains no personal paths or private Tailscale identifiers",
+    "Missing assets reported without starting or downloading anything",
+    "Unsupported mirror version left untouched",
+    "Real original engine/index transform exactly to the working HD30 version; setup is idempotent",
+    "Backup restoration, existing custom profile preservation and optional original-engine mode",
+    "Private loopback server, isolation headers, persistent-connection ranges, invalid ranges, plain/gzip batch reads and path traversal rejection",
+    "App wrapper resolves paths containing spaces and refuses to stop the existing separate installation"
+  ],
+  "browser_gameplay_in_this_package": "Not separately exercised; setup output matched the existing working local installation exactly.",
+  "tested_platform": "This Mac only; cross-Mac hardware playtesting remains unverified.",
+  "mirror_assets_in_release": false
+}

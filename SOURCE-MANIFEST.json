@@ -1,0 +1,142 @@
+[
+  {
+    "path": ".gitignore",
+    "bytes": 74,
+    "sha256": "ce7abf7af3cf312c4dc29287afa86227097e44e36d2ede9691276a272ad63463"
+  },
+  {
+    "path": "GTAV.app/Contents/Info.plist",
+    "bytes": 612,
+    "sha256": "bb68307d8daaa87ccf5f64a0388d55c6aa831c93d768502a69bf369e3ea9c512"
+  },
+  {
+    "path": "GTAV.app/Contents/MacOS/GTAV",
+    "bytes": 68,
+    "sha256": "463c855e87c6b31975cd67f421e140a3a7f2120bbabda26fbb30d9609c117b42"
+  },
+  {
+    "path": "Install-Desktop.command",
+    "bytes": 81,
+    "sha256": "21876bd104eb60433ebf8d5b3c58c816b733a9890c4d01ddf294e08ce94de803"
+  },
+  {
+    "path": "Launch-Mac.command",
+    "bytes": 63,
+    "sha256": "1d998b275cfd8647e0fe27f524deea93cedcaa8a6d0f09bb715d0b4f91aa07b7"
+  },
+  {
+    "path": "README-UPSTREAM.md",
+    "bytes": 2281,
+    "sha256": "64ae07a71edfc108c7a98c81164837003135316e0478e55c6ee540c963f4577d"
+  },
+  {
+    "path": "README.md",
+    "bytes": 4043,
+    "sha256": "20994d4e64a6c3ca4d141e8a6a2a8688ff11e1e210f7b3b23cae24cd555029a6"
+  },
+  {
+    "path": "Stop-Local.command",
+    "bytes": 69,
+    "sha256": "67f46ef5a5a1e13d7512d13d1f412c90a23597222ef5cfff5dc552317850a432"
+  },
+  {
+    "path": "UPSTREAM.json",
+    "bytes": 207,
+    "sha256": "4392666880dc06b9bc907c8cc78283cfc155ddcf1b9f7a6c09ba6e182c4373e8"
+  },
+  {
+    "path": "VALIDATION.json",
+    "bytes": 1106,
+    "sha256": "0abb4b9d7e633e99e8e78dd92ef3f207e54b4ba90dcf0faefa2e7a98e4aee633"
+  },
+  {
+    "path": "bootstrap-mac.sh",
+    "bytes": 633,
+    "sha256": "79a0330274eda904e5799c78a9d396adf4bd7170b1b6eeb1ffaa672d57f97272"
+  },
+  {
+    "path": "data-manifest.json",
+    "bytes": 393014,
+    "sha256": "c5d7b041dbcde22e54f97dc271a52690ea6101391bfda3fb9ecd13d8ef748c1a"
+  },
+  {
+    "path": "game.js",
+    "bytes": 124240,
+    "sha256": "81a7d6e912238de3d89bcafb1b01450671c6793167babb0ec970f308f454bcf0"
+  },
+  {
+    "path": "headers.txt",
+    "bytes": 750,
+    "sha256": "5a48fd0a116d2182824c37a6278f0f434e64545b5b5d3a605d6c3e012494e225"
+  },
+  {
+    "path": "homepage.html",
+    "bytes": 44484,
+    "sha256": "46c1c36f40e0c20e42c05157e6b8d41343d379d705677c2c867ede8dd6d73d49"
+  },
+  {
+    "path": "io_worker.js",
+    "bytes": 40643,
+    "sha256": "5d76ffe7d8988411d83a3e477de391411a702f65b38f45b48ae1569b32af5286"
+  },
+  {
+    "path": "launch_mac.py",
+    "bytes": 3259,
+    "sha256": "2b555bb0231b8a82d10eea21a7bcb43a3905801f8580aa6d0a0fd68bcb87a3c5"
+  },
+  {
+    "path": "loader.js",
+    "bytes": 9055,
+    "sha256": "d8b872b7d2756f16f83f2c1dd9ce427d8c41492965089d7ba61ee98db7472b57"
+  },
+  {
+    "path": "mac-index-patch.json",
+    "bytes": 3863,
+    "sha256": "0bd69bf229ec1b04b98785982f61353dab44f3ae8bd66014fc15876d39b865ee"
+  },
+  {
+    "path": "mac-profile.json",
+    "bytes": 247,
+    "sha256": "d32414d6d7c928f4f589e70908ce8c572754e4875958cfef654ee723ea3bc865"
+  },
+  {
+    "path": "media/Screenshot 2026-10-07 172103.png",
+    "bytes": 75101,
+    "sha256": "cd4a17cee97f51eac3a962c8370a93cf193c1b87819460e0ebe97bdaad9f5293"
+  },
+  {
+    "path": "media/Screenshot 2026-10-07 172216.png",
+    "bytes": 22699,
+    "sha256": "86904ddded74977d57ea9e87843f2c8907ce9bed9e9b6aa846e163a1d70ab987"
+  },
+  {
+    "path": "media/Screenshot 2026-10-07 172718.png",
+    "bytes": 5265,
+    "sha256": "73c706be9d1bd35314391eabe54e8b2855d258a2497bb32db19a387bf1192249"
+  },
+  {
+    "path": "media/Screenshot 2026-10-07 172758.png",
+    "bytes": 12819,
+    "sha256": "f8e3799ee816b9fa5f6a406de16cdac4205e607a15112cc2601964eedfe53290"
+  },
+  {
+    "path": "prepare_mac.py",
+    "bytes": 6007,
+    "sha256": "2d174b2693260956fc7715164182986804b63a99e503f27e59e376c3cfc2ca44"
+  },
+  {
+    "path": "serve_local.py",
+    "bytes": 8477,
+    "sha256": "723726fe0482d852daa9c37e792bef769b4ef67826411dd67a13e739c96827d8"
+  },
+  {
+    "path": "shader-index.json",
+    "bytes": 685955,
+    "sha256": "11c331895051b30126980ef666bd8935314ab400348b17c56ef8fe8983f50ee0"
+  },
+  {
+    "path": "wgpu_worker.js",
+    "bytes": 191062,
+    "sha256": "e1b83d2b10a98d29d8f7ac45a4e42f68486144a8046df688667891af034716c7"
+  }
+]

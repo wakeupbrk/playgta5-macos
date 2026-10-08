@@ -1,0 +1,146 @@
+{
+  "original_sha256": "46c1c36f40e0c20e42c05157e6b8d41343d379d705677c2c867ede8dd6d73d49",
+  "modified_sha256": "329475d80e5c5d2d84cef8c8e25eca60ef4acfeeafe47157e8363c56ca431ee3",
+  "changes": [
+    {
+      "start": 60,
+      "end": 64,
+      "text": "GTAV"
+    },
+    {
+      "start": 5022,
+      "end": 5022,
+      "text": "Local launch defaults are kept out of the address bar. Explicit diagnostic overrides still work.\nconst profile = await fetch('/local-profile.json', {cache: 'no-store'}).then(r => { if (!r.ok) throw new Error('Local profile unavailable'); return r.json(); });\nfor (const [key, value] of Object.entries(profile)) if (!q.has(key)) q.set(key, String(value));\n// A second engine competes for the exclusive OPFS cache and several GB of memory.\nif (navigator.locks) {\n const owned = await new Promise(resolve => navigator.locks.request('gtav-local-engine', {ifAvailable: true}, lock => {\n  resolve(!!lock);\n  if (lock) return new Promise(release => addEventListener('pagehide', release, {once: true}));\n }));\n if (!owned) {\n  document.body.innerHTML = '<div style=\"padding:40px;font:20px sans-serif\">GTAV is already running in another tab. Return to that tab to play.</div>';\n  throw new Error('Another GTAV tab owns the engine');\n }\n} \n// "
+    },
+    {
+      "start": 6342,
+      "end": 6342,
+      "text": "out of "
+    },
+    {
+      "start": 6353,
+      "end": 6355,
+      "text": "cannot enlarge mem"
+    },
+    {
+      "start": 6357,
+      "end": 6357,
+      "text": "y|memory alloca"
+    },
+    {
+      "start": 6358,
+      "end": 6358,
+      "text": "ion fail"
+    },
+    {
+      "start": 6360,
+      "end": 6378,
+      "text": ""
+    },
+    {
+      "start": 23755,
+      "end": 23756,
+      "text": "true;\n\tel.style.displ"
+    },
+    {
+      "start": 23757,
+      "end": 23757,
+      "text": "y = 'b"
+    },
+    {
+      "start": 23758,
+      "end": 23760,
+      "text": "ock'"
+    },
+    {
+      "start": 24703,
+      "end": 24703,
+      "text": ", pumpTimer = null;\n\tconst schedule = () => { if (pumpTimer === null) pumpTimer = setTimeout(() => { pumpTimer = null; pump(); }, 250); }"
+    },
+    {
+      "start": 24820,
+      "end": 24820,
+      "text": ", 500"
+    },
+    {
+      "start": 24831,
+      "end": 24831,
+      "text": ").slice(0, 250000"
+    },
+    {
+      "start": 24976,
+      "end": 24977,
+      "text": "if (q"
+    },
+    {
+      "start": 24978,
+      "end": 24980,
+      "text": "eue.length) schedule"
+    },
+    {
+      "start": 25043,
+      "end": 25043,
+      "text": "\n        // Keep diagnostics useful without HTTP posts for every engine debug line.\n        const text = String(ev.data);\n        if (!/\\[wgpu\\]|\\[io\\]|THREAD ERROR|CRASH|Aborted|out of memory|loader:|\\[loader\\]/i.test(text)) return;\n       "
+    },
+    {
+      "start": 25055,
+      "end": 25055,
+      "text": "t"
+    },
+    {
+      "start": 25056,
+      "end": 25060,
+      "text": "x"
+    },
+    {
+      "start": 25061,
+      "end": 25062,
+      "text": ""
+    },
+    {
+      "start": 25064,
+      "end": 25064,
+      "text": "\n       "
+    },
+    {
+      "start": 25085,
+      "end": 25086,
+      "text": ""
+    },
+    {
+      "start": 25126,
+      "end": 25127,
+      "text": ""
+    },
+    {
+      "start": 25129,
+      "end": 25129,
+      "text": "\n"
+    },
+    {
+      "start": 25130,
+      "end": 25131,
+      "text": "       sched"
+    },
+    {
+      "start": 25132,
+      "end": 25134,
+      "text": "le"
+    },
+    {
+      "start": 25137,
+      "end": 25137,
+      "text": "\n   "
+    },
+    {
+      "start": 29196,
+      "end": 29196,
+      "text": "postLog('[page profile] ' + JSON.stringify({resolution: startSize, fps: q.get('fps'), cores, quality: q.get('args')}));\n"
+    },
+    {
+      "start": 30477,
+      "end": 30477,
+      "text": "if (/Windows/.test(navigator.userAgent)) "
+    }
+  ]
+}
