@@ -22,6 +22,23 @@ def atomic(path, data):
     try: os.replace(temporary, path)
     finally: temporary.unlink(missing_ok=True)
 
+LAYER = [("homepage.html", "index.html"), ("cheats.js", "cheats.js"), ("loader.js", "b/8b0b5899ed/loader.js"), ("game.js", "b/8b0b5899ed/game.js")]
+
+def sync_layer(root, backup):
+    """Install this repo's page files (menu, trainer, cheats, loader) over the mirror's. The mirror's originals are saved once under backup/layer/."""
+    saved_dir = backup / "layer"
+    for name, target in LAYER:
+        source, dest = BASE / name, root / target
+        data = source.read_bytes()
+        if dest.exists() and dest.read_bytes() == data: continue
+        saved = saved_dir / target
+        if dest.exists() and not saved.exists():
+            saved.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(dest, saved)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        atomic(dest, data)
+        print("Installed " + name)
+
 def prepare(glass_fix=True):
     root = find_root()
     engine = root / "b/8b0b5899ed/game.wasm"
@@ -31,7 +48,8 @@ def prepare(glass_fix=True):
     index = root / "index.html"
     original = index.read_bytes()
     index_hash = digest(original.decode("utf-8").replace("\r\n", "\n").encode("utf-8"))
-    if index_hash not in (patch["original_sha256"], patch["modified_sha256"]):
+    ours_hash = digest((BASE / "homepage.html").read_bytes())
+    if index_hash not in (patch["original_sha256"], patch["modified_sha256"], ours_hash):
         raise RuntimeError("This mirror's index.html is a different version. No files were changed. This release supports upstream build 8b0b5899ed.")
     with engine.open("rb") as handle:
         if handle.read(8) != b"\0asm\1\0\0\0": raise RuntimeError("Invalid WebAssembly engine.")
@@ -46,15 +64,7 @@ def prepare(glass_fix=True):
         raise RuntimeError("Keep at least 128 MiB free for setup backups.")
     backup = BASE / "work/backups/mac-setup" / root.parent.name
     backup.mkdir(parents=True, exist_ok=True)
-    if index_hash == patch["original_sha256"]:
-        text = original.decode("utf-8").replace("\r\n", "\n")
-        for item in reversed(patch["changes"]): text = text[:item["start"]] + item["text"] + text[item["end"]:]
-        result = text.encode("utf-8")
-        if digest(result) != patch["modified_sha256"]: raise RuntimeError("Index patch validation failed.")
-        saved = backup / "index.html"
-        if saved.exists() and saved.read_bytes() != original: raise RuntimeError("Existing index backup differs; preserve it before retrying.")
-        if not saved.exists(): shutil.copy2(index, saved)
-        atomic(index, result)
+    sync_layer(root, backup)
     profile = root / "local-profile.json"
     if not profile.exists():
         atomic(profile, (BASE / "mac-profile.json").read_bytes())
@@ -74,7 +84,10 @@ def restore():
     root = find_root()
     backup = BASE / "work/backups/mac-setup" / root.parent.name
     patch = json.loads((BASE / "mac-index-patch.json").read_text())
-    actions = [("index.html", root / "index.html", patch["modified_sha256"]), ("game.wasm", root / "b/8b0b5899ed/game.wasm", PATCHED_ENGINE)]
+    for name, target in LAYER:
+        saved = backup / "layer" / target
+        if saved.exists(): atomic(root / target, saved.read_bytes())
+    actions = [("game.wasm", root / "b/8b0b5899ed/game.wasm", PATCHED_ENGINE)]
     pending = []
     for name, path, expected in actions:
         saved = backup / name

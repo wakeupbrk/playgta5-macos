@@ -1,0 +1,17 @@
+name: Playtest report
+description: Tell us how it runs on your Mac
+labels: [playtest]
+body:
+  - type: input
+    id: hardware
+    attributes: {label: Mac model, chip and RAM}
+    validations: {required: true}
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options: [Runs well, Runs with problems, Does not run]
+    validations: {required: true}
+  - type: textarea
+    id: notes
+    attributes: {label: FPS, load time, crashes, anything else}

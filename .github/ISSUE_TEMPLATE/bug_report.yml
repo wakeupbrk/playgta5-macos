@@ -1,0 +1,28 @@
+name: Bug report
+description: Something does not work on your Mac
+labels: [bug]
+body:
+  - type: input
+    id: hardware
+    attributes: {label: Mac model, chip and RAM, placeholder: "MacBook Pro, M1 Pro, 32 GB"}
+    validations: {required: true}
+  - type: input
+    id: versions
+    attributes: {label: macOS and Chrome versions}
+    validations: {required: true}
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options: [Story, Sandbox, Mods, Launcher / setup]
+    validations: {required: true}
+  - type: textarea
+    id: what
+    attributes: {label: What happened, and what did you expect?}
+    validations: {required: true}
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste the end of `work/game-diagnostics.log` and `work/local-server.log` (and `work/launcher-error.txt` if it exists).
+      render: text

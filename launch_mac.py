@@ -42,6 +42,9 @@ def open_game():
             subprocess.Popen([NODE, str(BASE / "freeze_watch.mjs")], cwd=BASE, stdin=subprocess.DEVNULL, stdout=out, stderr=out, start_new_session=True)
 
 def start():
+    if "--skip-setup" not in sys.argv:
+        import prepare_mac
+        prepare_mac.prepare("--no-glass-fix" not in sys.argv)
     with (WORK / "launch.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if not healthy():

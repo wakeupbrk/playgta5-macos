@@ -37,7 +37,7 @@
    ```
 
 2. **Add the game files.** Paste your `mirror` folder (about 19.7 GB) next to `GTAV.app`, so that `mirror/playgta5.com/index.html` exists. Both `mirror` and `.mirror` are accepted. The files are **not** included in this repo.
-3. **Launch.** Double-click `GTAV.app` or `Launch-Mac.command`. Chrome opens at `http://localhost:8000/`. Optionally run `Install-Desktop.command` once for a Desktop shortcut.
+3. **Launch.** Double-click `GTAV.app` or `Launch-Mac.command`. The first launch installs this repo's page files (launch menu, trainer, cheats, loader) into your `mirror` folder, saving the originals under `work/backups/mac-setup/` first. Chrome then opens at `http://localhost:8000/`. Optionally run `Install-Desktop.command` once for a Desktop shortcut.
 4. **Play.** Choose Story, Sandbox or Mods. Click the game to capture the mouse.
 
 ### Controls
@@ -109,7 +109,8 @@ INVESTIGATION.md ENGINE_INVESTIGATION.md           notes on the engine and asset
 - **Launcher reports missing assets:** check the `mirror/playgta5.com/index.html` layout from step 2.
 - **Port 8000 is busy:** close the other server, or run `Stop-Local.command`.
 - **Game stutters at first:** shaders compile as you go; it settles.
-- **Undo the setup:** close game tabs, stop the server, then `python3 prepare_mac.py --restore`.
+- **Undo the setup:** close game tabs, stop the server, then `python3 prepare_mac.py --restore` (puts the original mirror files back; saves are kept).
+- **Skip the install step:** launch with `--skip-setup` from Terminal if you manage the mirror yourself.
 - **Vehicle crash:** an optional glass workaround skips damaged-vehicle glass rendering (allocator crash). Pass `--no-glass-fix` to keep the original engine.
 
 ## Roadmap
