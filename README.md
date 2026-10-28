@@ -10,7 +10,7 @@
 ![Browser](https://img.shields.io/badge/browser-Chrome%20(WebGPU)-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
 [![Telegram](https://img.shields.io/badge/chat-Telegram-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://t.me/wakeupbrkgc)
 
-<img src="media/gameplay-road.jpg" alt="GTA V Sandbox Mode running in Chrome on macOS" width="90%">
+<img src="media/gameplay-sunset.jpg" alt="GTA V Sandbox Mode running in Chrome on macOS" width="90%">
 
 </div>
 
@@ -21,10 +21,11 @@
 <table>
   <tr>
     <td><img src="media/launch-menu.jpg" alt="Launch menu: Story, Sandbox, Mods"><br><sub>Launch menu</sub></td>
-    <td><img src="media/gameplay-drive.jpg" alt="Driving at sunset in Sandbox Mode"><br><sub>Sandbox Mode</sub></td>
+    <td><img src="media/cheat-menu.jpg" alt="Cheat menu"><br><sub>Cheat menu (<code>Cmd+X</code>)</sub></td>
   </tr>
   <tr>
-    <td colspan="2"><img src="media/gameplay-sunset.jpg" alt="Sunset through the pine trees"><br><sub>Running in Chrome on a Mac (WebGPU)</sub></td>
+    <td><img src="media/gameplay-road.jpg" alt="Sandbox Mode on the road"><br><sub>Sandbox Mode</sub></td>
+    <td><img src="media/gameplay-drive.jpg" alt="Driving at sunset"><br><sub>Running in Chrome on a Mac (WebGPU)</sub></td>
   </tr>
 </table>
 
