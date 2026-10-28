@@ -29,9 +29,14 @@ def port_free(port):
     with socket.socket() as probe:
         return probe.connect_ex(("127.0.0.1", port)) != 0
 
+def saved_port():
+    try: return int(PORT_FILE.read_text().strip())
+    except (OSError, ValueError): return None
+
 def free_port():
-    """Port 8000 when it is free, otherwise any free port the system hands out."""
-    if port_free(PREFERRED_PORT): return PREFERRED_PORT
+    """Port 8000 when free, otherwise the port used last time, then 8001-8099, then any free port. The browser's saved caches belong to one address, so the port should not change between launches."""
+    for port in dict.fromkeys([PREFERRED_PORT, saved_port()] + list(range(8001, 8100))):
+        if port and port_free(port): return port
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         return probe.getsockname()[1]
@@ -51,7 +56,6 @@ def stop():
         print("GTAV is already stopped.")
         return
     os.kill(int(state["pid"]), signal.SIGTERM)
-    PORT_FILE.unlink(missing_ok=True)
     print("GTAV local server stopped.")
 
 
