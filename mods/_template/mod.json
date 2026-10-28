@@ -1,0 +1,8 @@
+{
+  "name": "Template",
+  "version": "0.1.0",
+  "author": "",
+  "description": "Copy this folder, rename it (no leading underscore), edit this file and main.js.",
+  "entry": "main.js",
+  "modes": ["story", "sandbox"]
+}

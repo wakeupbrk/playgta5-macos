@@ -1,8 +1,1 @@
-{
-  "low": "0",
-  "res": "1920x1080",
-  "fps": "30",
-  "cores": "2",
-  "log": "1",
-  "args": "-textureQuality=2,-shadowQuality=1,-reflectionQuality=1,-particleQuality=1,-grassQuality=1,-cityDensity=1,-lodScale=1,-pedVariety=1,-vehicleVariety=1"
-}
+{"res":"1920x1080","fps":"0","low":"0","args":"-textureQuality=1,-shadowQuality=1,-reflectionQuality=1","cores":"2","log":"0","mem":"1","keep":"bink"}

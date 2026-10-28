@@ -615,7 +615,15 @@ const openUserdata = () => userdataDb || (userdataDb = new Promise((resolve, rej
 	r.onsuccess = () => resolve(r.result);
 	r.onerror = () => { userdataDb = null; reject(r.error); };
 }));
+// The same file also goes to the dev server (work/userdata, last 5 versions kept there): a save then survives cleared browser data or another browser profile.
+// loader.js reads both copies back and keeps the newer one. A failed server write is only logged; the IndexedDB copy still counts.
+function userdataMirror(path, record) {
+	const url = (record ? '/userdata/file?path=' : '/userdata/delete?path=') + encodeURIComponent(path) + (record ? '&mtime=' + Math.round(Number(record.mtime) || Date.now()) : '');
+	fetch(url, { method: 'POST', body: record ? record.data : undefined }).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); if (record && /SGTA|Profiles/.test(path)) log('[io] userdata mirrored to disk: ' + path + ' (' + record.data.length + ' bytes)'); })
+		.catch((e) => fetch('/log', { method: 'POST', body: '[io] userdata disk copy of ' + path + ' failed: ' + e }).catch(() => {}));
+}
 async function userdataWrite(path, record) {
+	userdataMirror(path, record);
 	try {
 		const db = await openUserdata();
 		await new Promise((resolve, reject) => {
@@ -624,7 +632,7 @@ async function userdataWrite(path, record) {
 			t.oncomplete = resolve;
 			t.onerror = t.onabort = () => reject(t.error);
 		});
-		log('[io] userdata ' + (record ? 'stored ' + path + ' (' + record.data.length + ' bytes)' : 'deleted ' + path));
+		fetch('/log', { method: 'POST', body: '[io] userdata ' + (record ? 'stored ' + path + ' (' + record.data.length + ' bytes)' : 'deleted ' + path) }).catch(() => {});		// always logged: a save that did not reach storage must be findable
 	} catch (e) {
 		fetch('/log', { method: 'POST', body: '[io] userdata ' + path + ' NOT stored (the save will be lost when the tab closes): ' + e }).catch(() => {});		// whatever ?log=1 says: a lost save is worth a line
 	}

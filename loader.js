@@ -6,11 +6,12 @@ self.onmessage = (ev) => {
 	if (started) return;
 	started = true;
 	const m = ev.data;
+	if (m.trainerSab) self.__trainerSab = m.trainerSab;
 	// ?cores=N (debug): pretend to be a machine with N logical cores; the engine sizes its worker pools from it
 	if (m.cores) Object.defineProperty(navigator, 'hardwareConcurrency', { value: m.cores });
 	// The GPU worker must be up before the engine blocks this thread: Chrome fetches the script of a worker nested in a worker through
 	// the parent's event loop. It idles until the engine sends its start message (wgpu_backend.cpp: wgpu_start_worker).
-	const gq = new URLSearchParams();		// the GPU worker reads its options from its own URL
+	const gq = new URLSearchParams(); gq.set('minimap', '20261016b');		// the GPU worker reads its options from its own URL
 	if (m.slots) gq.set('slots', m.slots);
 	if (m.syncPipelines) gq.set('syncpipelines', '1');
 	if (m.remoteLog) gq.set('log', '1');		// ?log=1 on the page: its log lines go to the dev server (off by default)
@@ -98,49 +99,74 @@ self.onmessage = (ev) => {
 			wgpuShaderUrl: B + '/shaders',
 			wgpuShotEvery: m.shotEvery,
 			keepThreads: m.keepThreads|0,		// bit mask of engine thread groups that are NOT skipped (1 replay, 2 net, 4 bink), see ipc_wasm.cpp
-			mainScriptUrlOrBlob: B + '/game.js' + ((m.fullConsole || m.remoteLog) ? '?' + [m.fullConsole ? 'console=1' : '', m.remoteLog ? 'log=1' : ''].filter(Boolean).join('&') : ''),		// pthreads read both from it, and take game.wasm's folder from it
+			trainerSab: m.trainerSab,
+			mainScriptUrlOrBlob: B + '/game.js?v=20261021_club_drake_v64' + ((m.fullConsole || m.remoteLog) ? '&' + [m.fullConsole ? 'console=1' : '', m.remoteLog ? 'log=1' : ''].filter(Boolean).join('&') : ''),		// pthreads read both from it, and take game.wasm's folder from it
 			locateFile: (p) => B + '/' + p,
 			onExit: (code) => { console.error('EXIT ' + code); self.__log('EXIT ' + code); self.__logFlush(); if (code) self.__crash('exit', 'EXIT ' + code); },
 			onAbort: (what) => { console.error('ABORT ' + what); self.__log('ABORT ' + what); self.__logFlush(); self.__crash('abort', 'ABORT ' + what); },
 			// Savegames and settings kept in IndexedDB by io_worker.js (platform/file/userdata_wasm.cpp sends them): put them back into the in-memory /userdata before the engine looks at it. The run
 			// dependency holds main() until they are in (or 8 s, so a broken IndexedDB cannot keep the game from starting). Only /userdata/ paths are accepted.
 			preRun: [() => {
-				if (typeof FS === 'undefined' || typeof addRunDependency !== 'function' || typeof indexedDB === 'undefined') return;
+				if (typeof FS === 'undefined' || typeof addRunDependency !== 'function') return;
 				addRunDependency('userdata');
 				let finished = false;
 				const finish = (note) => { if (finished) return; finished = true; self.__log('[loader] userdata: ' + note); self.__logFlush(); removeRunDependency('userdata'); };
-				setTimeout(() => finish('timed out'), 8000);
-				try {
-					const r = indexedDB.open('gta5-userdata', 1);
-					r.onupgradeneeded = () => r.result.createObjectStore('files');
-					r.onerror = () => finish('IndexedDB unavailable: ' + r.error);
-					r.onsuccess = () => {
-						let n = 0, bytes = 0;
+				setTimeout(() => finish('timed out'), 12000);
+				// Two copies of every save: this browser's IndexedDB and the dev server's work/userdata folder (io_worker.js writes both). The newer one wins, so a save survives
+				// cleared site data, a different browser profile, or a failed write on either side. Settled files only: /userdata/ paths.
+				const found = new Map();		// path -> { data: Uint8Array, mtime, from }
+				const fromIdb = () => new Promise((resolve) => {
+					if (typeof indexedDB === 'undefined') { resolve('IndexedDB unavailable'); return; }
+					try {
+						const r = indexedDB.open('gta5-userdata', 1);
+						r.onupgradeneeded = () => r.result.createObjectStore('files');
+						r.onerror = () => resolve('IndexedDB unavailable: ' + r.error);
+						r.onsuccess = () => {
+							try {
+								const req = r.result.transaction('files', 'readonly').objectStore('files').openCursor();
+								req.onerror = () => resolve('IndexedDB read failed: ' + req.error);
+								req.onsuccess = () => {
+									const c = req.result;
+									if (!c) { resolve(''); return; }
+									const path = String(c.key);
+									if (path.startsWith('/userdata/') && c.value && c.value.data) found.set(path, { data: c.value.data, mtime: Number(c.value.mtime) || 0, from: 'browser' });
+									c.continue();
+								};
+							} catch (e) { resolve('IndexedDB read failed: ' + e); }
+						};
+					} catch (e) { resolve('IndexedDB failed: ' + e); }
+				});
+				const fromServer = async () => {
+					try {
+						const list = await (await fetch('/userdata/list', { cache: 'no-store' })).json();
+						for (const f of list) {
+							const have = found.get(f.path);
+							if (!f.path.startsWith('/userdata/') || (have && have.mtime >= f.mtime)) continue;
+							const res = await fetch('/userdata/file?path=' + encodeURIComponent(f.path), { cache: 'no-store' });
+							if (res.ok) found.set(f.path, { data: new Uint8Array(await res.arrayBuffer()), mtime: f.mtime, from: 'disk' });
+						}
+						return '';
+					} catch (e) { return 'server copy unavailable: ' + e; }
+				};
+				(async () => {
+					const notes = [await fromIdb(), await fromServer()].filter(Boolean);
+					let n = 0, bytes = 0, disk = 0;
+					for (const [path, f] of found) {
 						try {
-							const req = r.result.transaction('files', 'readonly').objectStore('files').openCursor();
-							req.onerror = () => finish('read failed: ' + req.error);
-							req.onsuccess = () => {
-								const c = req.result;
-								if (!c) { finish('restored ' + n + ' file(s), ' + bytes + ' bytes'); return; }
-								const path = String(c.key);
-								try {
-									if (path.startsWith('/userdata/') && c.value && c.value.data) {
-										FS.mkdirTree(path.slice(0, path.lastIndexOf('/')));
-										FS.writeFile(path, c.value.data);
-										FS.utime(path, c.value.mtime, c.value.mtime);
-										n++; bytes += c.value.data.length;
-									}
-								} catch (e) { self.__log('[loader] userdata: ' + path + ' not restored: ' + e); }
-								c.continue();
-							};
-						} catch (e) { finish('read failed: ' + e); }
-					};
-				} catch (e) { finish('failed: ' + e); }
+							FS.mkdirTree(path.slice(0, path.lastIndexOf('/')));
+							FS.writeFile(path, f.data);
+							FS.utime(path, f.mtime, f.mtime);
+							n++; bytes += f.data.length; if (f.from === 'disk') disk++;
+							if (/\/SGTA|\/Profiles\//.test(path)) self.__log('[loader] userdata: restored ' + path + ' (' + f.data.length + ' bytes, from ' + f.from + ')');
+						} catch (e) { self.__log('[loader] userdata: ' + path + ' not restored: ' + e); }
+					}
+					finish('restored ' + n + ' file(s), ' + bytes + ' bytes' + (disk ? ', ' + disk + ' from the disk copy' : '') + (notes.length ? ' (' + notes.join('; ') + ')' : ''));
+				})().catch((e) => finish('failed: ' + e));
 			}],
 		};
 		// __log/__logFlush come from prejs.js, which only exists once game.js is loaded: note the start line in the console.
 		console.log('loader: starting engine: ' + m.args.join(' ') + ' (cores ' + m.cores + ')');
-		importScripts(B + '/game.js');
+		importScripts(B + '/game.js?v=20261021_club_drake_v64');
 	};
 	gpu.onerror = (e) => console.error('gpu worker failed to load: ' + e.message);
 };

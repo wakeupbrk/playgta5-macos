@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>game</title>
+<title>GTAV</title>
 <style>
 	html, body { margin: 0; height: 100%; background: #000; color: #ccc; font: 12px monospace; overflow: hidden; }
 	#canvas { display: block; position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; background: #000; }
@@ -39,18 +39,111 @@
 	#fill { height: 100%; width: 0; background: #7cc576; }
 	#hud { position: fixed; left: 8px; bottom: 8px; max-width: 60vw; white-space: pre-wrap; opacity: .8; pointer-events: none; }
 	#fps { position: fixed; left: 8px; top: 6px; display: none; color: #0f0; font: bold 18px/1.2 Consolas, monospace; font-variant-numeric: tabular-nums; text-shadow: 1px 1px 2px #000, 0 0 3px #000; pointer-events: none; z-index: 10; }
+
+	/* ---- start menu: Story Mode / Sandbox Mode / Mods over the title art; the engine keeps loading behind it ---- */
+	#mainmenu { position: absolute; left: 96px; top: 150px; width: 330px; display: flex; flex-direction: column; gap: 4px; z-index: 5; }
+	#mainmenu[hidden] { display: none; }
+	#mainmenu h2 { margin: 0 0 6px; font: 600 11px Chalet, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: rgba(255, 255, 255, .62); text-shadow: 1px 1px 2px #000; }
+	#mainmenu button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 10px 14px 10px 16px; border: 0; border-left: 3px solid transparent; border-radius: 2px; background: rgba(0, 0, 0, .68); color: #fff; font: 20px/1.1 Chalet, sans-serif; letter-spacing: .04em; text-transform: uppercase; text-align: left; cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+	#mainmenu button small { font: 11px/1.3 Chalet, sans-serif; letter-spacing: 0; text-transform: none; opacity: .72; }
+	#mainmenu button:hover, #mainmenu button:focus-visible { background: #fff; color: #000; border-left-color: #7cc576; outline: none; }
+	#mainmenu button:hover small, #mainmenu button:focus-visible small { opacity: .8; }
+	#mainmenu button.sub { font-size: 15px; padding: 8px 14px 8px 16px; }
+	#mainmenu .mm-link { align-self: flex-start; width: auto; padding: 4px 2px; border: 0; background: none; font: 11px Chalet, sans-serif; letter-spacing: 0; text-transform: none; text-decoration: underline; color: rgba(255, 255, 255, .62); }
+	#mainmenu .mm-link:hover { background: none; color: #fff; }
+	#modspanel { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .72); font: 14px Chalet, system-ui, sans-serif; color: #eee; }
+	#modspanel[hidden] { display: none; }
+	#modspanel .mp-box { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); display: flex; flex-direction: column; background: #14171a; border: 1px solid #2a2f34; border-radius: 6px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+	#modspanel header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #2a2f34; }
+	#modspanel h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .04em; flex: 1; }
+	#modspanel .mp-list { overflow: auto; padding: 8px 12px; min-height: 120px; }
+	#modspanel .mp-row { display: flex; align-items: center; gap: 14px; padding: 12px 8px; border-bottom: 1px solid #22272b; }
+	#modspanel .mp-row:last-child { border-bottom: 0; }
+	#modspanel .mp-info { flex: 1; min-width: 0; }
+	#modspanel .mp-name { font-weight: 600; }
+	#modspanel .mp-name em { font-style: normal; font-weight: 400; color: #8b949c; margin-left: 8px; font-size: 12px; }
+	#modspanel .mp-desc { color: #a9b1b8; font-size: 13px; margin-top: 2px; }
+	#modspanel .mp-err { color: #f08a7e; font-size: 12px; margin-top: 3px; }
+	#modspanel .mp-tags { margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; }
+	#modspanel .mp-tags span { font-size: 11px; padding: 1px 7px; border-radius: 9px; background: #232a30; color: #9fb0bd; }
+	#modspanel .mp-sw { flex: none; position: relative; width: 44px; height: 24px; border: 0; border-radius: 12px; background: #3a4147; cursor: pointer; transition: background .15s; }
+	#modspanel .mp-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; }
+	#modspanel .mp-sw[aria-checked=true] { background: #3fa85a; }
+	#modspanel .mp-sw[aria-checked=true]::after { transform: translateX(20px); }
+	#modspanel .mp-sw:focus-visible, #modspanel button.mp-btn:focus-visible { outline: 2px solid #7cc576; outline-offset: 2px; }
+	#modspanel .mp-empty { padding: 28px 12px; text-align: center; color: #a9b1b8; line-height: 1.6; }
+	#modspanel code { background: #1f2428; padding: 1px 6px; border-radius: 3px; font: 12px Consolas, monospace; color: #cfe3d4; word-break: break-all; }
+	#modspanel footer { padding: 12px 20px; border-top: 1px solid #2a2f34; color: #8b949c; font-size: 12px; display: flex; gap: 12px; align-items: center; }
+	#modspanel footer span { flex: 1; }
+	#modspanel button.mp-btn { padding: 7px 14px; border: 1px solid #3a4147; border-radius: 4px; background: #1d2226; color: #eee; font: inherit; cursor: pointer; }
+	#modspanel button.mp-btn:hover { background: #262d32; }
 </style>
 </head>
 <body>
 <canvas id="canvas" width="800" height="600" tabindex="-1"></canvas>
 <div id="hud"></div>
-<div id="loading"><div id="ls-stage"><div id="ls-screens"></div><img id="ls-logo" src="/b/8b0b5899ed/title/logo.png" alt=""><div id="ls-bars"><div id="modes" class="ls-bar"><button data-act="back"></button><button data-act="map5"></button><button data-act="map6"></button><button data-act="sandbox"></button><button data-act="story"></button></div><div class="ls-bar"><span id="label">Starting...</span><span id="pct">0%</span><i class="ls-spin"></i></div></div></div><div id="ls-log"><div id="data"></div><div id="console"></div></div><div id="bar"><div id="fill"></div></div></div>
+<div id="modspanel" hidden role="dialog" aria-modal="true" aria-labelledby="mp-title"></div>
+<div id="loading"><div id="ls-stage"><div id="ls-screens"></div><div id="mainmenu" hidden></div><img id="ls-logo" src="/b/8b0b5899ed/title/logo.png" alt=""><div id="ls-bars"><div id="modes" class="ls-bar"><button data-act="back"></button><button data-act="map5"></button><button data-act="map6"></button><button data-act="sandbox"></button><button data-act="story"></button><button data-act="mods"></button></div><div class="ls-bar"><span id="label">Starting...</span><span id="pct">0%</span><i class="ls-spin"></i></div></div></div><div id="ls-log"><div id="data"></div><div id="console"></div></div><div id="bar"><div id="fill"></div></div></div>
 <div id="fps"></div>
+<script>
+// ---- window.GTAV: the small, stable surface that mods (mods/<id>/main.js) and the cheat menu share. See mods/README.md. ----
+(function () {
+	if (window.GTAV) return;
+	const G = window.GTAV = { api: 1, mode: null, commands: null, mods: [], _reg: {}, _listeners: { mode: [], world: [] }, _worldSeen: false };
+	const post = (text) => { try { fetch('/log', { method: 'POST', body: text }).catch(() => {}); } catch (e) {} };
+	G.log = (text) => post('[page mod] ' + text);
+	G.toast = (text) => { if (typeof G._toast === 'function') G._toast(String(text)); else post('[page mod] toast before menu ready: ' + text); };
+	G.command = (name, argInt, floats, str) => {
+		if (!G.commands || typeof G._dispatch !== 'function') { G.log('command ' + name + ' ignored: the trainer is not ready'); return false; }
+		const id = G.commands[String(name).toUpperCase()];
+		if (id === undefined) { G.log('unknown command ' + name); return false; }
+		G._dispatch(id, argInt | 0, floats || [0, 0, 0], str || '', '');
+		return true;
+	};
+	G.saveNow = () => G.command('SAVE_NOW', 0, [0, 0, 0], '');
+	// Large data for the trainer (a whole course): written in chunks to bytes 8192.. of the trainer buffer; word 2040 is 1 (chunk) / 2 (last chunk) until the trainer has read it.
+	G.sendData = async (text) => {
+		const sab = window.__gtav_trainer_sab;
+		if (!sab) { G.log('sendData: no trainer buffer'); return false; }
+		const T32 = new Int32Array(sab), U8 = new Uint8Array(sab), bytes = new TextEncoder().encode(String(text)), CH = sab.byteLength - 8192;
+		const free = async () => { for (let i = 0; i < 400; i++) { if (Atomics.load(T32, 2040) === 0) return true; await new Promise((r) => setTimeout(r, 25)); } return false; };
+		for (let off = 0; off < bytes.length || off === 0; off += CH) {
+			if (!(await free())) { G.log('sendData: the trainer is not reading (is the world loaded?)'); Atomics.store(T32, 2040, 0); return false; }
+			const part = bytes.subarray(off, off + CH);
+			U8.set(part, 8192); T32[2041] = part.length;
+			Atomics.store(T32, 2040, off + CH >= bytes.length ? 2 : 1);
+			if (!bytes.length) break;
+		}
+		return free();
+	};
+	G.trainerWords = (start, count) => { const sab = window.__gtav_trainer_sab; return sab ? Array.from(new Int32Array(sab, start * 4, count)) : null; };
+	G.onMode = (fn) => { if (typeof fn !== 'function') return; if (G.mode) { try { fn(G.mode); } catch (e) { G.log('onMode: ' + e); } } else G._listeners.mode.push(fn); };
+	G.registerMod = (id, def) => { G._reg[String(id)] = def || {}; G.log('registered ' + id); if (G._worldSeen && def && typeof def.onWorld === 'function') { try { def.onWorld(); } catch (e) { G.log(id + ' onWorld: ' + e); } } };
+	G._emit = (name, value) => { for (const fn of G._listeners[name] || []) { try { fn(value); } catch (e) { G.log(name + ' listener: ' + e); } } if (name === 'mode') G._listeners.mode = []; };
+	G._world = () => { G._worldSeen = true; for (const [id, d] of Object.entries(G._reg)) if (d && typeof d.onWorld === 'function') { try { d.onWorld(); } catch (e) { G.log(id + ' onWorld: ' + e); } } };
+})();
+</script>
+<script src="/cheats.js?v=20261021_club_drake_v64"></script>
 <script type="module">
 // Page of the browser build. The engine runs in a dedicated worker (loader.js: its "main thread", where the static constructors and
 // main() run and which may block); the page only owns the canvas, which is transferred to that worker and on to the GPU worker.
 // Query string: ?args=-flag1,-flag2=value (added to the engine command line), ?shot=N (screenshot of every N-th present to the dev server).
 const q = new URLSearchParams(location.search);
+// Local launch defaults are kept out of the address bar. Explicit diagnostic overrides still work.
+const profile = await fetch('/local-profile.json', {cache: 'no-store'}).then(r => { if (!r.ok) throw new Error('Local profile unavailable'); return r.json(); });
+// 'mode' is never taken from the profile: every launch shows the Story / Sandbox / Mods menu (an old profile still holds "mode":"sandbox"). ?mode= in the address still works.
+for (const [key, value] of Object.entries(profile)) if (key !== 'mode' && !q.has(key)) q.set(key, String(value));
+// A second engine competes for the exclusive OPFS cache and several GB of memory.
+if (navigator.locks) {
+ const owned = await new Promise(resolve => navigator.locks.request('gtav-local-engine', {ifAvailable: true}, lock => {
+  resolve(!!lock);
+  if (lock) return new Promise(release => addEventListener('pagehide', release, {once: true}));
+ }));
+ if (!owned) {
+  document.body.innerHTML = '<div style="padding:40px;font:20px sans-serif">GTAV is already running in another tab. Return to that tab to play.</div>';
+  throw new Error('Another GTAV tab owns the engine');
+ }
+} 
 // URL prefix of everything this page loads (loader, workers, engine, shaders, title art): empty on the dev server; on the PHP host (phase3/host/index.php) it puts the page's own
 // text `/b/8b0b5899ed` through str_replace to `/b/<build id>`, so those files are cached for ever under URLs that change when the build does.
 const BASE = '/b/8b0b5899ed'.charAt(0) === '_' ? '' : '/b/8b0b5899ed';
@@ -64,7 +157,7 @@ const postLog = (text) => { if (remoteLog) fetch('/log', { method: 'POST', body:
 	let posted = 0;
 	new BroadcastChannel('game-crash').onmessage = (ev) => {
 		const m = ev.data;
-		const memory = /memory|OOM|Aborted\(|RangeError|grow/i.test(m.text);
+		const memory = /out of memory|OOM|cannot enlarge memory|memory allocation failed/i.test(m.text);
 		const dev = ' deviceMemory ' + (navigator.deviceMemory || '?') + ' GB, cores ' + navigator.hardwareConcurrency;
 		if (remoteLog && posted++ < 3) fetch('/log', { method: 'POST', body: '[page] CRASH (' + m.kind + ', ' + m.thread + ' thread, wasm heap ' + m.heap + ' MB,' + dev + ', ' + location.search + '): ' + m.text + '\n' + m.tail.join('\n') + '\n' }).catch(() => {});
 		const el = document.getElementById('hud');
@@ -197,10 +290,11 @@ const ACTS = {		// button: text, key cap, key codes
 	map6: ['GTA VI Map', '6', ['Digit6', 'Numpad6']],
 	sandbox: ['Sandbox Mode', 'Space', ['Space']],
 	story: ['Story Mode', 'Enter', ['Enter', 'NumpadEnter']],
+	mods: ['Mods', 'M', ['KeyM']],
 };
 const LOADING = { 1: 'Loading Story Mode', 2: 'Loading Sandbox Mode: GTA V Map', 3: 'Loading Sandbox Mode: GTA VI Map' };
 const modesEl = document.getElementById('modes'), modeButtons = [...modesEl.querySelectorAll('button')];
-const isMode = (act) => act === 'story' || act === 'sandbox';
+const isMode = (act) => act === 'story' || act === 'sandbox' || act === 'mods';
 const showModes = () => {
 	for (const b of modeButtons) {
 		const act = b.dataset.act, loading = !pickingMap && (act === 'story' ? startMode === 1 : act === 'sandbox' && startMode >= 2);
@@ -215,6 +309,7 @@ const showModes = () => {
 		b.classList.toggle('chosen', loading);
 	}
 	if (startMode) modesEl.classList.remove('ask');
+	renderMainMenu();
 	if (waitingChoice && !startMode) document.getElementById('label').textContent = pickingMap ? 'Choose a map to continue' : 'Choose Story Mode or Sandbox Mode to continue';
 };
 const choose = (m) => {
@@ -224,24 +319,268 @@ const choose = (m) => {
 		if (startModeWord) Atomics.store(startModeWord, 0, m);
 		postLog('[page] start mode: ' + ({ 1: 'story', 2: 'sandbox', 3: 'sandbox on env_test' })[m]);
 	}
+	announceMode(m);
 	showModes();
 };
 const act = (a) => {
 	if (startCommitted) return;
-	if (a === 'story') choose(1);
+	if (a === 'mods') openMods();
+	else if (a === 'story') choose(1);
 	else if (a === 'map5') choose(2);
 	else if (a === 'map6') choose(3);
 	else { pickingMap = a === 'sandbox'; showModes(); }		// Sandbox Mode (or its loading item: change the map) asks for the map; Back closes that
 };
 modesEl.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && !b.hidden) act(b.dataset.act); });
 addEventListener('keydown', (e) => {
+	if (modsOpen) { if (e.code === 'Escape') { closeMods(); e.preventDefault(); } return; }
 	if (startCommitted || e.ctrlKey || e.altKey || e.metaKey || !document.getElementById('loading')) return;
+	if (e.target && e.target.closest && e.target.closest('#mainmenu')) {		// arrows move between the menu's buttons; Enter / Space press the focused one
+		if (e.code === 'ArrowDown' || e.code === 'ArrowUp') {
+			const items = [...document.querySelectorAll('#mainmenu button')], i = items.indexOf(e.target);
+			items[(i + (e.code === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+			e.preventDefault(); e.stopImmediatePropagation();
+		}
+		if (e.code !== 'Escape' && e.code !== 'Backspace') return;
+	}
 	const b = modeButtons.find((x) => !x.hidden && ACTS[x.dataset.act][2].includes(e.code));
 	if (!b) return;
 	act(b.dataset.act);
 	e.preventDefault(); e.stopImmediatePropagation();
 }, { capture: true });
+
+// ---- start menu (Story / Sandbox / Mods), saved-game summary, Mods screen ---------------------------------------------------------------------------------------------
+const MODE_NAMES = { 1: 'story', 2: 'sandbox', 3: 'env_test' };
+let saveInfo = null, modList = null, modsOpen = false, modsDir = '';
+const loadedMods = new Set();
+const trainerWord = (i, v) => { try { if (window.__gtav_trainer_sab) Atomics.store(new Int32Array(window.__gtav_trainer_sab), i, v); } catch (e) {} };
+const announceMode = (m) => {		// the trainer (src_trainer.js) reads T32[56]: 0 not chosen, 1 story, 2 sandbox, 3 env_test. Story Mode keeps the trainer passive (no sandbox restore, no stored toggles).
+	trainerWord(56, m);
+	if (!window.GTAV || !m || GTAV.mode === MODE_NAMES[m]) return;
+	GTAV.mode = MODE_NAMES[m];
+	GTAV._emit('mode', GTAV.mode);
+	startEnabledMods();
+};
+if (startMode) setTimeout(() => announceMode(startMode), 0);		// ?mode= given in the address
+// Parse a savegame's header name: the longest run of printable UTF-16LE in the first 400 bytes, e.g. "(Autosave) Prologue".
+const saveTitle = (data) => {
+	let best = '', cur = '';
+	for (let i = 0; i + 1 < Math.min(data.length, 400); i += 2) {
+		const c = data[i] | (data[i + 1] << 8);
+		if (c >= 32 && c < 127) cur += String.fromCharCode(c);
+		else { if (cur.length > best.length) best = cur; cur = ''; }
+	}
+	if (cur.length > best.length) best = cur;
+	return best.length >= 4 ? best.replace(/\s*-\s*\d+\/\d+\/\d+.*$/, '') : 'Saved game';
+};
+const readSaves = () => new Promise((resolve) => {		// every /userdata/ file in this browser's IndexedDB (what the engine's loader restores), plus a one-time copy of them to the disk store
+	const out = [];
+	try {
+		const r = indexedDB.open('gta5-userdata', 1);
+		r.onupgradeneeded = () => r.result.createObjectStore('files');
+		r.onerror = () => resolve(out);
+		r.onsuccess = () => {
+			const req = r.result.transaction('files', 'readonly').objectStore('files').openCursor();
+			req.onerror = () => resolve(out);
+			req.onsuccess = () => { const c = req.result; if (!c) { resolve(out); return; } if (c.value && c.value.data) out.push({ path: String(c.key), data: c.value.data, mtime: Number(c.value.mtime) || 0 }); c.continue(); };
+		};
+	} catch (e) { resolve(out); }
+});
+async function refreshSaves() {
+	try {
+		const files = await readSaves();
+		let disk = [];
+		try { disk = await (await fetch('/userdata/list', { cache: 'no-store' })).json(); } catch (e) {}
+		const known = new Map(disk.map((f) => [f.path, f.mtime]));
+		// A fresh browser profile has no IndexedDB saves: the disk copies count too (loader.js restores them at start), so list them with the others.
+		for (const f of disk) {
+			if (!/\/SGTA/.test(f.path) || /\.bak$/.test(f.path) || files.some((x) => x.path === f.path && x.mtime >= f.mtime)) continue;
+			try { const r = await fetch('/userdata/file?path=' + encodeURIComponent(f.path), { cache: 'no-store' }); if (r.ok) files.push({ path: f.path, data: new Uint8Array(await r.arrayBuffer()), mtime: f.mtime }); } catch (e) {}
+		}
+		for (const f of files) {		// migrate: anything the disk store lacks (or has older) is copied up, so existing saves are no longer browser-only
+			if (!f.path.startsWith('/userdata/') || (known.has(f.path) && known.get(f.path) >= f.mtime)) continue;
+			fetch('/userdata/file?path=' + encodeURIComponent(f.path) + '&mtime=' + Math.round(f.mtime), { method: 'POST', body: f.data })
+				.then(() => postLog('[page] save copied to disk: ' + f.path + ' (' + f.data.length + ' bytes)')).catch(() => {});
+		}
+		const saves = files.filter((f) => /\/SGTA/.test(f.path)).sort((a, b) => b.mtime - a.mtime);
+		saveInfo = saves.length ? { title: saveTitle(saves[0].data), mtime: saves[0].mtime, count: saves.length } : { none: true };
+		postLog('[page] saved games found: ' + saves.length + (saves[0] ? ' newest "' + saveInfo.title + '" ' + new Date(saves[0].mtime).toISOString() : ''));
+	} catch (e) { saveInfo = { none: true }; }
+	renderMainMenu();
+}
+const fmtDate = (ms) => new Date(ms).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+function renderMainMenu() {
+	const menu = document.getElementById('mainmenu');
+	if (!menu) return;
+	if (startMode || startCommitted) { menu.hidden = true; return; }
+	menu.hidden = false;
+	const hadFocus = menu.contains(document.activeElement);
+	const item = (act, title, sub, cls) => {
+		const b = document.createElement('button'); b.type = 'button'; b.dataset.mm = act; if (cls) b.className = cls;
+		b.append(title); if (sub) { const sm = document.createElement('small'); sm.textContent = sub; b.append(sm); }
+		b.addEventListener('click', () => { if (act === 'newstory') newStory(); else act_(act); });
+		return b;
+	};
+	const act_ = (a) => act(a);
+	const kids = [];
+	const h = document.createElement('h2');
+	if (pickingMap) {
+		h.textContent = 'Sandbox Mode: choose a map';
+		kids.push(h, item('map5', 'GTA V Map', 'Los Santos and Blaine County', 'sub'), item('map6', 'GTA VI Map', 'The Florida test level', 'sub'), item('back', 'Back', '', 'sub'));
+	} else {
+		h.textContent = 'Choose how to play';
+		const saved = saveInfo && !saveInfo.none;
+		kids.push(h,
+			item('story', 'Story Mode', saveInfo === null ? 'Looking for saved games...' : saved ? 'Continue: ' + saveInfo.title + ' - ' + fmtDate(saveInfo.mtime) : 'New game from the Prologue'));
+		if (saved) { const l = document.createElement('button'); l.type = 'button'; l.className = 'mm-link'; l.textContent = 'Start a new Story game instead'; l.dataset.mm = 'newstory'; l.addEventListener('click', newStory); kids.push(l); }
+		const nOn = modList ? modList.filter((x) => x.enabled).length : 0;
+		kids.push(item('sandbox', 'Sandbox Mode', 'Free roam with every weapon and the cheat menu'),
+			item('mods', 'Mods', modList === null ? '' : modList.length ? modList.length + ' installed, ' + nOn + ' on' : 'None installed yet'));
+	}
+	menu.replaceChildren(...kids);
+	if (hadFocus) { const f = menu.querySelector('button'); if (f) f.focus(); }
+}
+function newStory() {
+	if (!confirm('Start a new Story game from the Prologue?\n\nYour existing saved games are kept on disk (work/userdata) until the new game overwrites a save slot; the last 5 versions of every save are kept in work/userdata-history.')) return;
+	const u = new URL(location.href); u.searchParams.set('newgame', '1'); u.searchParams.set('mode', 'story'); location.href = u.toString();
+}
+async function fetchMods() {
+	try {
+		const r = await (await fetch('/mods/list', { cache: 'no-store' })).json();
+		modList = r.mods || []; modsDir = r.dir || '';
+		if (window.GTAV) GTAV.mods = modList;
+	} catch (e) { modList = []; }
+	renderMainMenu();
+	return modList;
+}
+function startMod(m) {
+	if (!m || !m.enabled || !m.entry || m.error || loadedMods.has(m.id)) return;
+	const modeName = window.GTAV && GTAV.mode;
+	if (!modeName) return;		// started when the mode is chosen
+	if (m.modes && m.modes.length && !m.modes.includes(modeName === 'env_test' ? 'sandbox' : modeName)) return;
+	loadedMods.add(m.id);
+	const el = document.createElement('script');
+	el.src = '/mods/files/' + encodeURIComponent(m.id) + '/' + m.entry.split('/').map(encodeURIComponent).join('/') + '?t=' + Date.now();
+	el.onload = () => postLog('[page mods] loaded ' + m.id);
+	el.onerror = () => postLog('[page mods] FAILED to load ' + m.id + '/' + m.entry);
+	document.head.appendChild(el);
+}
+async function startEnabledMods() { const list = modList || await fetchMods(); list.forEach(startMod); }
+async function setModEnabled(m, on) {
+	m.enabled = on;
+	try {
+		const state = {}; (modList || []).forEach((x) => { state[x.id] = !!x.enabled; });
+		await fetch('/mods/state', { method: 'POST', body: JSON.stringify({ enabled: state }) });
+		postLog('[page mods] ' + m.id + (on ? ' enabled' : ' disabled'));
+	} catch (e) { postLog('[page mods] could not save the mod state: ' + e); }
+	if (on) startMod(m);
+	else if (window.GTAV && GTAV._reg[m.id] && typeof GTAV._reg[m.id].onDisable === 'function') { try { GTAV._reg[m.id].onDisable(); } catch (e) {} }
+	renderMods(); renderMainMenu();
+}
+function renderMods() {
+	const panel = document.getElementById('modspanel');
+	const box = document.createElement('div'); box.className = 'mp-box';
+	const head = document.createElement('header');
+	head.innerHTML = '<h1 id="mp-title">Mods</h1>';
+	const close = document.createElement('button'); close.className = 'mp-btn'; close.textContent = 'Close'; close.addEventListener('click', closeMods); head.append(close);
+	const list = document.createElement('div'); list.className = 'mp-list';
+	if (modList === null) { list.innerHTML = '<div class="mp-empty">Loading...</div>'; }
+	else if (!modList.length) {
+		const e = document.createElement('div'); e.className = 'mp-empty';
+		e.append('No mods installed yet.', document.createElement('br'), 'Put a mod folder (with a mod.json) into', document.createElement('br'));
+		const c = document.createElement('code'); c.textContent = modsDir || 'mods/'; e.append(c, document.createElement('br'), 'and reopen this screen. See mods/README.md.');
+		list.append(e);
+	}
+	for (const m of modList || []) {
+		const row = document.createElement('div'); row.className = 'mp-row';
+		const info = document.createElement('div'); info.className = 'mp-info';
+		const nm = document.createElement('div'); nm.className = 'mp-name'; nm.textContent = m.name;
+		if (m.version || m.author) { const em = document.createElement('em'); em.textContent = [m.version && 'v' + m.version, m.author && 'by ' + m.author].filter(Boolean).join(' '); nm.append(em); }
+		info.append(nm);
+		if (m.description) { const d = document.createElement('div'); d.className = 'mp-desc'; d.textContent = m.description; info.append(d); }
+		if (m.error) { const er = document.createElement('div'); er.className = 'mp-err'; er.textContent = m.error; info.append(er); }
+		const tags = document.createElement('div'); tags.className = 'mp-tags';
+		for (const t of [m.entry && 'script', m.overrides && 'file overrides', ...(m.modes && m.modes.length ? m.modes.map((x) => x + ' only') : [])].filter(Boolean)) { const sp = document.createElement('span'); sp.textContent = t; tags.append(sp); }
+		if (tags.children.length) info.append(tags);
+		const sw = document.createElement('button'); sw.className = 'mp-sw'; sw.setAttribute('role', 'switch'); sw.setAttribute('aria-checked', m.enabled ? 'true' : 'false'); sw.setAttribute('aria-label', 'Enable ' + m.name);
+		sw.disabled = !!m.error; sw.addEventListener('click', () => setModEnabled(m, !m.enabled));
+		row.append(info, sw); list.append(row);
+	}
+	const foot = document.createElement('footer'); const note = document.createElement('span');
+	note.textContent = 'Script mods start with the game; a mod switched off while playing stops at the next launch unless it handles it itself.';
+	const reload = document.createElement('button'); reload.className = 'mp-btn'; reload.textContent = 'Rescan'; reload.addEventListener('click', async () => { await fetchMods(); renderMods(); });
+	foot.append(note, reload);
+	box.append(head, list, foot); panel.replaceChildren(box);
+}
+async function openMods() {
+	modsOpen = true; const panel = document.getElementById('modspanel'); panel.hidden = false; renderMods();
+	panel.onclick = (e) => { if (e.target === panel) closeMods(); };
+	await fetchMods(); renderMods();
+	const f = panel.querySelector('.mp-sw:not(:disabled), .mp-btn'); if (f) f.focus();
+}
+function closeMods() { modsOpen = false; document.getElementById('modspanel').hidden = true; const b = document.querySelector('#mainmenu button'); if (b) b.focus(); }
+
+// ---- why did it quit? run-state tracking, plus a screen wake lock while playing -------------------------------------------------------------------------------------
+// A tab that crashes, is killed for memory or is discarded cannot log anything itself. So: a "run" marker with a heartbeat sits in localStorage while the game runs and is removed
+// on a clean pagehide; if the next start finds it, the log says how long before that the old session was last alive (and the [page mem] readings, with ?mem=1 in the profile, give the
+// memory just before). Visibility, freeze/resume and pagehide are logged too. The wake lock stops macOS sleeping the display, which throttles or pauses a hidden tab.
+const runKey = 'gtav_run';
+try {
+	const prev = JSON.parse(localStorage.getItem(runKey) || 'null');
+	if (prev) postLog('[page] PREVIOUS SESSION DID NOT END CLEANLY: started ' + new Date(prev.start).toISOString() + ', last alive ' + Math.round((Date.now() - prev.alive) / 1000) + ' s ago, mode ' + prev.mode + ' (crash, kill, discard or power loss)');
+	const beat = () => { try { localStorage.setItem(runKey, JSON.stringify({ start: runStart, alive: Date.now(), mode: MODE_NAMES[startMode] || 'menu', vis: document.visibilityState })); } catch (e) {} };
+	const runStart = Date.now();
+	beat(); setInterval(beat, 5000);
+	addEventListener('pagehide', (e) => { try { localStorage.removeItem(runKey); navigator.sendBeacon('/log', '[page] pagehide persisted=' + e.persisted + ' after ' + Math.round((Date.now() - runStart) / 1000) + ' s'); } catch (e2) {} });
+	document.addEventListener('visibilitychange', () => postLog('[page] visibility: ' + document.visibilityState));
+	document.addEventListener('freeze', () => { try { navigator.sendBeacon('/log', '[page] tab frozen by the browser'); } catch (e) {} });
+	document.addEventListener('resume', () => postLog('[page] tab resumed'));
+} catch (e) {}
+let wakeLock = null;
+async function keepAwake() {
+	try {
+		if (!navigator.wakeLock || wakeLock) return;
+		wakeLock = await navigator.wakeLock.request('screen');
+		wakeLock.addEventListener('release', () => { wakeLock = null; });
+		postLog('[page] screen wake lock on');
+	} catch (e) { postLog('[page] wake lock unavailable: ' + e); }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ready) keepAwake(); });
+
+// ---- engine freeze detector: the trainer's heartbeat (T32[1]) counts every script tick (at least 4 a second even when idle). If it stops for 8 s while the tab is visible, say so once
+// with what else is still alive, so a freeze is dated to the second and the picture/sound state is known.
+let hbLast = -1, hbSince = performance.now(), hbReported = false;
+setInterval(() => {
+	try {
+		if (!window.__gtav_trainer_sab || !ready || document.visibilityState !== 'visible') { hbSince = performance.now(); return; }
+		const t = new Int32Array(window.__gtav_trainer_sab), hb = Atomics.load(t, 1), now = performance.now();
+		if (hb !== hbLast) { hbLast = hb; hbSince = now; if (hbReported) { postLog('[page] ENGINE RESUMED after ' + ((now - hbStalledAt) / 1000).toFixed(1) + ' s'); hbReported = false; } return; }
+		if (now - hbSince > 8000 && !hbReported) {
+			hbReported = true; hbStalledAt = hbSince;
+			postLog('[page] ENGINE STALL: script heartbeat frozen for ' + ((now - hbSince) / 1000).toFixed(0) + ' s (mode ' + (MODE_NAMES[startMode] || '?') + ', toggles A 0x' + (Atomics.load(t, 2) >>> 0).toString(16) + ' B 0x' + (Atomics.load(t, 44) >>> 0).toString(16) + ', wanted/state 0x' + (Atomics.load(t, 4) >>> 0).toString(16) + ', pos ' + [32, 33, 34].map((i) => new Float32Array(t.buffer)[i].toFixed(1)).join(',') + ', queue ' + Atomics.load(t, 64) + '/' + Atomics.load(t, 65) + '); audio is ' + (window.__gtav_audio_ctx ? window.__gtav_audio_ctx.state : '?'));
+		}
+	} catch (e) {}
+}, 2000);
+let hbStalledAt = 0;
+
+// ---- save prompt: the game asks "The autosave slot already contains ... Do you want to overwrite ...?" (No = Backspace, Yes = Enter) at the first save of a session and the script
+// thread (and with it the trainer heartbeat T32[1]) stops until it is answered. Answering No would also switch autosave off. T32[57] counts the save requests: if one was made in the
+// last 30 s and the heartbeat has stood still for 1.2 s, the page presses Enter (Yes), again every 1.5 s, at most 8 times per request.
+let promptSeq = 0, promptSeqAt = 0, promptHb = -1, promptHbAt = 0, promptKeys = 0, promptLast = 0;
+setInterval(() => {
+	try {
+		if (!window.__gtav_trainer_sab) return;
+		const t = new Int32Array(window.__gtav_trainer_sab), seq = Atomics.load(t, 57), hb = Atomics.load(t, 1), now = performance.now();
+		if (seq !== promptSeq) { promptSeq = seq; promptSeqAt = now; promptKeys = 0; }
+		if (hb !== promptHb) { promptHb = hb; promptHbAt = now; return; }
+		if (!promptSeq || now - promptSeqAt > 30000 || now - promptHbAt < 1200 || promptKeys >= 8 || now - promptLast < 1500) return;
+		promptLast = now; promptKeys++;
+		const ev = (type) => new KeyboardEvent(type, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true });
+		window.dispatchEvent(ev('keydown')); setTimeout(() => window.dispatchEvent(ev('keyup')), 120);
+		postLog('[page] save prompt: script thread stopped after a save request, pressed Yes (#' + promptKeys + ')');
+	} catch (e) {}
+}, 250);
 showModes();
+refreshSaves(); fetchMods();
 // ---- loading progress: the engine (prejs.js, loader.js) and the GPU worker publish {pct, label} on a BroadcastChannel ------------------
 {
 	const loading = document.getElementById('loading'), fill = document.getElementById('fill'), label = document.getElementById('label'), pct = document.getElementById('pct');
@@ -270,9 +609,9 @@ showModes();
 		if (m.error) { label.textContent = m.error; label.style.color = '#e66'; return; }
 		if (m.pct > target) { target = m.pct; if (m.label) { lastLabel = m.label; if (!waitingChoice) label.textContent = m.label; } if (m.pct >= 72 && worldBase < 0) worldBase = dataBytes; }
 		if (m.choice && !startMode) { waitingChoice = true; modesEl.classList.add('ask'); showModes(); }		// the engine waits for the choice: showModes asks for it in the label
-		if (m.commit) { startCommitted = true; pickingMap = false; if (m.mode) startMode = m.mode; showModes(); }		// the engine took the choice
+		if (m.commit) { startCommitted = true; pickingMap = false; if (m.mode) startMode = m.mode; announceMode(startMode); showModes(); }		// the engine took the choice
 		if (m.compiling !== undefined && !waitingChoice) { label.textContent = lastLabel = 'Preparing shaders'; target = Math.max(target, 99); }		// the world is up; the GPU worker holds it until its pipelines are compiled
-		if (m.world) { ready = true; hud.textContent = 'click the game to capture the mouse (Esc releases it, Shift+P switches keyboard mode, = shows FPS)'; setTimeout(() => { hud.textContent = ''; }, 15000); }
+		if (m.world) { ready = true; keepAwake(); if (window.GTAV) GTAV._world(); hud.textContent = 'click the game to capture the mouse (Esc releases it, ⌘X opens cheats, Shift+P switches keyboard mode, = shows FPS)'; setTimeout(() => { hud.textContent = ''; }, 15000); }
 	};
 	// Between reports the bar creeps forward (at most 6 points past the last report) so a long stage does not look frozen.
 	const dataEl = document.getElementById('data');
@@ -309,11 +648,36 @@ showModes();
 	}, 50);
 }
 const hud = document.getElementById('hud');
+// Local-server watchdog (2026-10-20): every 4 s a tiny request to the server that feeds the game its data. A stopped or hung server used to freeze a running game with no
+// explanation (the engine waits for a file read); now a notice says what is wrong and clears by itself when the server answers again (the io worker keeps retrying reads
+// for ~5 minutes, so the game carries on without a reload). Logged once per outage, not per check.
+{
+	const el = document.createElement('div');
+	el.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99999;padding:10px 18px;border-radius:8px;background:rgba(120,20,20,.92);color:#fff;font:600 14px -apple-system,sans-serif;display:none;pointer-events:none;text-align:center;max-width:80vw';
+	document.body.appendChild(el);
+	let fails = 0, downSince = 0;
+	const check = async () => {
+		const ac = new AbortController(), t = setTimeout(() => ac.abort(), 3500);
+		let ok = false;
+		try { const r = await fetch('/local-profile.json', { method: 'HEAD', cache: 'no-store', signal: ac.signal }); ok = r.ok; } catch (e) {}
+		clearTimeout(t);
+		if (ok) {
+			if (downSince) { postLog('[page] local server is back after ' + ((performance.now() - downSince) / 1000 | 0) + ' s'); el.style.display = 'none'; downSince = 0; }
+			fails = 0;
+		} else if (++fails >= 2) {
+			if (!downSince) { downSince = performance.now(); postLog('[page] local server not answering'); }
+			el.textContent = 'Local game server is not responding (' + ((performance.now() - downSince) / 1000 | 0) + ' s). The game freezes when it needs data. Start it again with Launch-Mac.command; the game continues by itself.';
+			el.style.display = 'block';
+		}
+	};
+	setInterval(check, 4000);
+}
 // FPS counter, top left: off by default, the = key toggles it. The GPU worker counts presented frames and posts the rate twice a second on 'game-fps'. The key does not reach
 // the game (capture phase on window, before the input handlers; this build has debug key bindings).
 {
 	const el = document.getElementById('fps');
-	let on = false;
+	let on = true;
+	el.style.display = 'block';
 	new BroadcastChannel('game-fps').onmessage = (ev) => { if (on) el.textContent = Math.round(ev.data.fps) + ' FPS'; };
 	const isToggle = (e) => e.code === 'Equal' && !e.ctrlKey && !e.altKey && !e.metaKey;
 	addEventListener('keydown', (e) => {
@@ -331,19 +695,33 @@ const canvas = document.getElementById('canvas');
 // in order, one POST at a time with whatever queued up meanwhile.
 if (remoteLog) {
 	const queue = [];
-	let sending = false;
+	let sending = false, pumpTimer = null;
+	const schedule = () => { if (pumpTimer === null) pumpTimer = setTimeout(() => { pumpTimer = null; pump(); }, 250); };
 	const pump = async () => {
 		if (sending || !queue.length) return;
 		sending = true;
-		const body = queue.splice(0).join('\n');
+		const body = queue.splice(0, 500).join('\n').slice(0, 250000);
 		try { await fetch('/log', { method: 'POST', body, keepalive: body.length < 60000 }); } catch (e) { /* server gone */ }
 		sending = false;
-		pump();
+		if (queue.length) schedule();
 	};
-	new BroadcastChannel('game-log').onmessage = (ev) => { queue.push(ev.data); if (queue.length > 20000) queue.splice(0, queue.length - 20000); pump(); };
+	new BroadcastChannel('game-log').onmessage = (ev) => {
+        // Keep diagnostics useful without HTTP posts for every engine debug line.
+        const text = String(ev.data);
+        if (!/\[wgpu\]|\[io\]|THREAD ERROR|CRASH|Aborted|out of memory|loader:|\[loader\]/i.test(text)) return;
+        queue.push(text);
+        if (queue.length > 2000) queue.splice(0, queue.length - 2000);
+        schedule();
+    };
 }
 // Release the io worker's exclusive storage handles as soon as this page goes away (a quick reload would otherwise find them locked and run without the store).
 addEventListener('pagehide', () => { try { new BroadcastChannel('game-io').postMessage('close'); } catch (e) {} });
+// Prevent accidental tab closure or browser quitting while GTA V is active
+addEventListener('beforeunload', (e) => {
+	e.preventDefault();
+	e.returnValue = 'GTA V is running. Are you sure you want to exit?';
+	return e.returnValue;
+});
 // Earlier versions cached the game data with a service worker (sw.js) and the Cache API: remove both, the io worker keeps its own store (io_worker.js).
 async function dropOldCache() {
 	try {
@@ -382,6 +760,7 @@ wantSize = () => {
 	return [Math.max(320, Math.round(w / 2) * 2), Math.max(240, Math.round(h / 2) * 2)];
 };
 startSize = wantSize();
+postLog('[page profile] ' + JSON.stringify({resolution: startSize, fps: q.get('fps'), cores, quality: q.get('args')}));
 // Script and replay channels: ~87 % of all log lines in play (the scripts print leaderboard and status lines every few frames). Below warning they are off: formatting, the
 // log transport and the dev server's log file cost the main thread for nothing. ?verbose=1 keeps everything.
 const LOG_ARGS = q.get('verbose') ? [] : ['-Script_all=warning', '-replay_all=warning'];
@@ -392,8 +771,9 @@ const ENGINE_ARGS = ['-fastscriptcore'];
 // timer tick, 15.6 ms, unless the renderer process has a timer below 16 ms pending, which switches the process to a fine tick (measured: a 1 ms wait takes 15.5 ms; with
 // this timer 2.1 ms, a 4 ms wait 5.0 ms). The game has no such timer, so every short sleep cost a whole tick: the limiter held a 60 fps cap to 37 fps and the visibility
 // wait added 15 ms to a frame. An empty callback; nothing else on this thread runs while the game plays.
-setInterval(() => {}, 1);
-const worker = new Worker(BASE + '/loader.js');
+if (/Windows/.test(navigator.userAgent)) setInterval(() => {}, 1);
+if (!window.__gtav_trainer_sab && !new URLSearchParams(location.search).get('notrainer')) { try { window.__gtav_trainer_sab = new SharedArrayBuffer(65536); } catch (e) {} }
+const worker = new Worker(BASE + '/loader.js?v=20261021_club_drake_v64');
 	worker.onmessage = (ev) => {
 		if (ev.data.hud) hud.textContent = ev.data.hud;
 		if (ev.data.input) installInput(ev.data.input.memory, ev.data.input.block);
@@ -403,6 +783,7 @@ const worker = new Worker(BASE + '/loader.js');
 	worker.postMessage({
 		canvas: offscreen,
 		base: BASE,
+		trainerSab: window.__gtav_trainer_sab,
 		args: ['-rootdir=/game/', ...(q.get('nogpu') ? [] : ['-wgpu']), '-nodisplaycalibration', '-noSocialClub', '-pc:nosocialclub', ...(q.get('newgame') === '1' ? ['-noautoload'] : []), '-nonetwork', '-output', '-width=' + startSize[0], '-height=' + startSize[1], '-forceResolution', ...LOG_ARGS, ...ENGINE_ARGS, '-frameLimit=' + (q.get('fps') === '30' ? 2 : q.get('fps') === '0' ? 0 : 1),		// the game's own limiter: VSync 2 (its default) = 30 fps; 1 = 60 fps; ?fps=0 uncapped (diagnostics). Story Mode continues from the newest savegame (the engine skips that for Sandbox Mode); ?newgame=1 (-noautoload) starts it from the Prologue instead
 		 ...(cores <= 2 ? ['-numCores=' + cores] : []), ...(lowMemory ? LOW_ARGS : []), ...(q.get('args') || '').split(',').filter(Boolean)],
 		shotEvery: +(q.get('shot') || 0),
@@ -439,27 +820,88 @@ if (remoteLog && (q.get('mem') || lowMemory) && performance.measureUserAgentSpec
 // ---- audio: the engine mixer writes into a ring in shared memory (platform/audio/browser_audio_wasm.cpp); an AudioWorklet plays it -------------------
 // Browsers only allow audio after a user gesture: the context is created on the first click/key press.
 let audioPending = null, audioGesture = false, audioStarted = false;
+window.__gtav_audio_ctx = null;
+window.__gtav_audio_node = null;
+
+// One start at a time. Every click or key press on the start menu calls this (resumeAudio) while an earlier call is still waiting for addModule(); each of those used to find
+// "no node yet" and create its own AudioWorkletNode. Two to four nodes then read the same ring buffer: the engine mixed 3-4x faster than real time (144-191k frames/s in the
+// log instead of 48k), every node played a fraction of the stream (crackling) and the mixer thread burnt the CPU. Now: one call at a time, the node is created once, and a
+// node count check logs any extra.
+let audioStarting = null, audioNodesCreated = 0, audioDiagTimer = 0;
 function tryStartAudio() {
-	if (!audioPending || !audioGesture || audioStarted) return;
-	audioStarted = true;
-	(async () => {
-		try {
-			const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' });
-			await ctx.audioWorklet.addModule(BASE + '/audio-worklet.js');
-			const node = new AudioWorkletNode(ctx, 'game-audio', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2], processorOptions: audioPending });
-			node.connect(ctx.destination);
-			await ctx.resume();
-			addEventListener('pointerdown', () => ctx.resume());
-			addEventListener('keydown', () => ctx.resume());
-			if (q.get('mem')) {		// diagnostics: ring state every 5 s
-				const hdr = new Int32Array(audioPending.memory.buffer, audioPending.ring, 8);
-				setInterval(() => postLog('[page audio] state ' + ctx.state + ', frames written ' + (hdr[0] >>> 0) + ', read ' + (hdr[1] >>> 0) + ', fill ' + (((hdr[0] - hdr[1]) >>> 0)) + ', worklet calls ' + (hdr[3] >>> 0) + ', peak ' + (Atomics.exchange(hdr, 4, 0) / 1e6).toFixed(3)), 5000);
-			}
-			postLog('[page] audio started: ' + ctx.sampleRate + ' Hz, base latency ' + ctx.baseLatency);
-		} catch (e) { audioStarted = false; postLog('[page] audio failed: ' + e); }
-	})();
+	if (!audioPending) return Promise.resolve();
+	if (audioStarting) return audioStarting;
+	audioStarting = startAudioOnce().finally(() => { audioStarting = null; });
+	return audioStarting;
 }
-for (const type of ['pointerdown', 'keydown']) addEventListener(type, () => { audioGesture = true; tryStartAudio(); }, { capture: true });
+async function startAudioOnce() {
+	if (!audioPending) return;
+	try {
+		let ctx = window.__gtav_audio_ctx;
+		if (!ctx) {
+			const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+			if (!AudioContextClass) return;
+			try {
+				ctx = new AudioContextClass({ sampleRate: 48000, latencyHint: 'interactive' });
+			} catch (e1) {
+				try {
+					ctx = new AudioContextClass({ latencyHint: 'interactive' });
+				} catch (e2) {
+					ctx = new AudioContextClass();
+				}
+			}
+			window.__gtav_audio_ctx = ctx;
+		}
+
+		if (ctx.state !== 'running') {
+			try { await ctx.resume(); } catch (e) {}
+		}
+
+		if (!window.__gtav_audio_node) {
+			await ctx.audioWorklet.addModule(BASE + '/audio-worklet.js');
+			if (window.__gtav_audio_node) return;
+			const node = new AudioWorkletNode(ctx, 'game-audio', {
+				numberOfInputs: 0,
+				numberOfOutputs: 1,
+				outputChannelCount: [2],
+				processorOptions: audioPending
+			});
+			node.connect(ctx.destination);
+			window.__gtav_audio_node = node;
+			audioNodesCreated++;
+			if (audioNodesCreated > 1) postLog('[page] BUG: ' + audioNodesCreated + ' audio nodes created');
+		}
+
+		if (ctx.state !== 'running') {
+			try { await ctx.resume(); } catch (e) {}
+		}
+		audioStarted = (ctx.state === 'running');
+		if (q.get('mem')) {		// diagnostics: ring state every 5 s
+			const hdr = new Int32Array(audioPending.memory.buffer, audioPending.ring, 8);
+			if (!audioDiagTimer) audioDiagTimer = setInterval(() => postLog('[page audio] state ' + ctx.state + ', frames written ' + (hdr[0] >>> 0) + ', read ' + (hdr[1] >>> 0) + ', fill ' + (((hdr[0] - hdr[1]) >>> 0)) + ', worklet calls ' + (hdr[3] >>> 0) + ', peak ' + (Atomics.exchange(hdr, 4, 0) / 1e6).toFixed(3)), 5000);
+		}
+		postLog('[page] audio live: ' + ctx.sampleRate + ' Hz, state=' + ctx.state);
+	} catch (e) {
+		audioStarted = false;
+		postLog('[page] audio failed: ' + (e.message || e));
+	}
+}
+
+window.__gtav_init_audio = tryStartAudio;
+
+function resumeAudio() {
+	audioGesture = true;
+	if (window.__gtav_audio_ctx && window.__gtav_audio_ctx.state !== 'running') {
+		window.__gtav_audio_ctx.resume().catch(() => {});
+	}
+	if (!window.__gtav_audio_node && audioPending) {
+		tryStartAudio();
+	}
+}
+
+for (const type of ['pointerdown', 'mousedown', 'keydown', 'click', 'touchstart']) {
+	addEventListener(type, resumeAudio, { capture: true, passive: true });
+}
 
 // ---- input: DOM events -> the engine's input block in shared memory (platform/input/browser_input_wasm.cpp) ------------------------
 // Layout of WasmInputBlock: 256 key bytes, then int32 words: mouseX, mouseY, dX, dY, dZ, buttons, focus, locked, textHead, textTail, text[64] (uint16).
@@ -499,6 +941,8 @@ function installDebugPanel(memory, block) {
 }
 
 function installInput(memory, block) {
+	window.__gtav_input_memory = memory; window.__gtav_input_block = block;
+	if (window.__gtav_register_input) window.__gtav_register_input(memory, block);
 	if (q.get('dbg')) installDebugPanel(memory, block);
 	const keys = new Uint8Array(memory.buffer, block, 256);
 	const w = new Int32Array(memory.buffer, block + 256, 10);
@@ -535,8 +979,40 @@ function installInput(memory, block) {
 	const FLY_ALIAS = { KeyI: 'Numpad8', KeyK: 'Numpad2', KeyJ: 'Numpad4', KeyL: 'Numpad6', KeyU: 'Numpad7', KeyO: 'Numpad9' };
 	const held = new Set();
 	const syncFlyAlias = () => { for (const [src, target] of Object.entries(FLY_ALIAS)) Atomics.store(keys, VK[target], held.has(src) || held.has(target) ? 0x80 : 0); };
+	const isCheatHotkey = (e) => (
+		((e.metaKey || e.ctrlKey) && (e.code === 'KeyX' || e.key.toLowerCase() === 'x' || e.keyCode === 88)) ||
+		e.code === 'F4' || e.key === 'F4' ||
+		e.code === 'Backquote' || e.key === '`' || e.key === '~' ||
+		e.code === 'Backslash' || e.key === '\\' ||
+		e.code === 'F8' || e.key === 'F8'
+	);
+	window.__gtav_cheat_menu_open = false;
+	window.__gtav_isolate_input = (open) => {
+		window.__gtav_cheat_menu_open = !!open;
+		releaseAll();
+		Atomics.store(w, DX, 0);
+		Atomics.store(w, DY, 0);
+		Atomics.store(w, DZ, 0);
+		Atomics.store(w, BTN, 0);
+		if (open && document.pointerLockElement) {
+			try { document.exitPointerLock(); } catch (err) {}
+		}
+	};
 	addEventListener('keydown', (e) => {
+		// Prevent accidental Cmd+W / Cmd+Q closing the browser while playing
+		if ((e.metaKey || e.ctrlKey) && (e.code === 'KeyW' || e.code === 'KeyQ')) {
+			e.preventDefault();
+			e.stopPropagation();
+			return;
+		}
 		if (passThrough(e)) return;
+		if (window.__gtav_cheat_menu_open) {
+			if (isCheatHotkey(e) || e.code === 'Escape') return;
+			return;
+		}
+		if (isCheatHotkey(e)) {
+			return; // Handled by cheats menu
+		}
 		e.preventDefault();
 		const vk = VK[e.code];
 		if (!e.repeat) trace('keydown ' + e.code + ' vk=' + (vk || 'UNMAPPED') + ' hasFocus=' + document.hasFocus() + ' engineFocus=' + Atomics.load(w, FOCUS));
@@ -551,7 +1027,17 @@ function installInput(memory, block) {
 		}
 	});
 	addEventListener('keyup', (e) => {
+		if ((e.metaKey || e.ctrlKey) && (e.code === 'KeyW' || e.code === 'KeyQ')) {
+			e.preventDefault();
+			e.stopPropagation();
+			return;
+		}
 		if (passThrough(e)) return;
+		if (window.__gtav_cheat_menu_open) {
+			if (isCheatHotkey(e) || e.code === 'Escape') return;
+			return;
+		}
+		if (isCheatHotkey(e)) return;
 		e.preventDefault();
 		const vk = VK[e.code];
 		if (vk) Atomics.store(keys, vk, 0);
@@ -563,14 +1049,24 @@ function installInput(memory, block) {
 
 	const locked = () => document.pointerLockElement === canvas;
 	canvas.addEventListener('mousedown', (e) => {
-		if (!locked()) { canvas.requestPointerLock({ unadjustedMovement: true }).catch(() => canvas.requestPointerLock()); }
+		if (window.__gtav_cheat_menu_open) return;
+		if (!locked()) {
+			canvas.requestPointerLock({ unadjustedMovement: true }).catch(() => canvas.requestPointerLock());
+			if (navigator.keyboard && navigator.keyboard.lock) {
+				navigator.keyboard.lock(['KeyW', 'KeyQ', 'KeyX', 'Escape', 'Tab']).catch(() => {});
+			}
+		}
 		Atomics.or(w, BTN, 1 << [0, 2, 1, 3, 4][e.button]);
 		e.preventDefault();
 	});
-	addEventListener('mouseup', (e) => { Atomics.and(w, BTN, ~(1 << [0, 2, 1, 3, 4][e.button])); });
+	addEventListener('mouseup', (e) => {
+		if (window.__gtav_cheat_menu_open) return;
+		Atomics.and(w, BTN, ~(1 << [0, 2, 1, 3, 4][e.button]));
+	});
 	addEventListener('contextmenu', (e) => e.preventDefault());
 	document.addEventListener('pointerlockchange', () => { trace('pointer lock ' + (locked() ? 'on' : 'off')); Atomics.store(w, LOCKED, locked() ? 1 : 0); });
 	addEventListener('mousemove', (e) => {
+		if (window.__gtav_cheat_menu_open) return;
 		const r = canvas.getBoundingClientRect();
 		if (locked()) {
 			Atomics.add(w, DX, e.movementX);
@@ -592,12 +1088,32 @@ function installInput(memory, block) {
 	// scrolling) accumulate. The engine consumes one notch per frame (browser_input_wasm.cpp), so a long scroll keeps scrolling for a few frames.
 	let wheelAccum = 0;
 	addEventListener('wheel', (e) => {
+		if (window.__gtav_cheat_menu_open) return;
 		e.preventDefault();
 		wheelAccum += -e.deltaY / (e.deltaMode === 0 ? 100 : e.deltaMode === 1 ? 3 : 1);
 		const n = Math.trunc(wheelAccum);
 		if (n) { wheelAccum -= n; Atomics.add(w, DZ, n); }
 	}, { passive: false });
 }
+</script>
+<button id="fs-btn" type="button" title="Full screen">&#x26F6; Full screen</button>
+<style>
+#fs-btn{position:fixed;top:10px;right:10px;z-index:2147483000;padding:6px 12px;font:600 13px system-ui,sans-serif;color:#fff;background:rgba(20,20,20,.65);border:1px solid rgba(255,255,255,.3);border-radius:6px;cursor:pointer;opacity:.55;transition:opacity .2s}
+#fs-btn:hover{opacity:1}
+:fullscreen #fs-btn{display:none}
+</style>
+<script>
+(() => {
+	const b = document.getElementById('fs-btn');
+	b.addEventListener('mousedown', (e) => e.stopPropagation());
+	b.addEventListener('click', () => {
+		const el = document.documentElement;
+		el.requestFullscreen({ navigationUI: 'hide' }).then(() => {
+			if (navigator.keyboard && navigator.keyboard.lock) navigator.keyboard.lock(['KeyW', 'KeyQ', 'KeyX', 'Escape', 'Tab']).catch(() => {});
+		}).catch(() => {});
+		b.blur();
+	});
+})();
 </script>
 </body>
 </html>
