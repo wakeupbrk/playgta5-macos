@@ -446,6 +446,8 @@ sync_pairs = [
     ("cheats.js", os.path.join(MIRROR, "cheats.js")),
     ("loader.js", os.path.join(MIRROR, "b", BUILD_ID, "loader.js")),
     ("game.js", os.path.join(MIRROR, "b", BUILD_ID, "game.js")),
+    ("io_worker.js", os.path.join(MIRROR, "b", BUILD_ID, "io_worker.js")),
+    ("wgpu_worker.js", os.path.join(MIRROR, "b", BUILD_ID, "wgpu_worker.js")),
 ]
 
 for src, dst in sync_pairs:

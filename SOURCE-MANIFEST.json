@@ -1,13 +1,38 @@
 [
   {
+    "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+    "bytes": 873,
+    "sha256": "2b84bc10a995e63668252e319e42fc8a8fb5bf766ff4261701ac1626a70ac95b"
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/config.yml",
+    "bytes": 147,
+    "sha256": "d195fc822d4d4fd377fcfa0f88d2fe1fd8ea64f0e2640f99d29aa226b36e1284"
+  },
+  {
+    "path": ".github/ISSUE_TEMPLATE/playtest_report.yml",
+    "bytes": 470,
+    "sha256": "a3082ead2bd7548a6cd03d14963d66409715aa9a93fac613654e65b2df2b7979"
+  },
+  {
     "path": ".gitignore",
-    "bytes": 74,
-    "sha256": "ce7abf7af3cf312c4dc29287afa86227097e44e36d2ede9691276a272ad63463"
+    "bytes": 97,
+    "sha256": "7256a87a0b3e5f156fe503022d5d9804f84bc5a83a6c25beebd819cfbdf471cf"
+  },
+  {
+    "path": "CHANGELOG.md",
+    "bytes": 987,
+    "sha256": "0ad2777580859b64c085faabec462c9cc6c567cf27ba9f55fbf43507dc44ab7d"
+  },
+  {
+    "path": "ENGINE_INVESTIGATION.md",
+    "bytes": 5448,
+    "sha256": "260fb685a35f75fd83e1dfcc929e5f23e770a8fb1aa7236151ba8c1c903d6bdb"
   },
   {
     "path": "GTAV.app/Contents/Info.plist",
-    "bytes": 612,
-    "sha256": "bb68307d8daaa87ccf5f64a0388d55c6aa831c93d768502a69bf369e3ea9c512"
+    "bytes": 614,
+    "sha256": "7d0138cb40769bd00e09c4aaa956859903bbae283f2083cfcf749eb22830b72b"
   },
   {
     "path": "GTAV.app/Contents/MacOS/GTAV",
@@ -15,9 +40,24 @@
     "sha256": "463c855e87c6b31975cd67f421e140a3a7f2120bbabda26fbb30d9609c117b42"
   },
   {
+    "path": "INVESTIGATION.md",
+    "bytes": 9515,
+    "sha256": "bc7a62a0fd8b336b9a7008feb07ddc686ab613e125c9ff63666c4991ea8fd3f3"
+  },
+  {
     "path": "Install-Desktop.command",
     "bytes": 81,
     "sha256": "21876bd104eb60433ebf8d5b3c58c816b733a9890c4d01ddf294e08ce94de803"
+  },
+  {
+    "path": "LICENSE",
+    "bytes": 1061,
+    "sha256": "4a4f3d9a541dfaef469e08be8179dbe941a89903a05b205617521da6692af1ed"
+  },
+  {
+    "path": "Launch-Local.cmd",
+    "bytes": 309,
+    "sha256": "af3671c82b7fe2406380d2cd88271366e5a339cf759a1f7062b73df86c54f4d5"
   },
   {
     "path": "Launch-Mac.command",
@@ -26,13 +66,18 @@
   },
   {
     "path": "README-UPSTREAM.md",
-    "bytes": 2281,
-    "sha256": "64ae07a71edfc108c7a98c81164837003135316e0478e55c6ee540c963f4577d"
+    "bytes": 1862,
+    "sha256": "00f8a1035b1665fbc0e2494287af62ca3d2188dc7323016b6ddd79c4c043acf3"
   },
   {
     "path": "README.md",
-    "bytes": 4043,
-    "sha256": "20994d4e64a6c3ca4d141e8a6a2a8688ff11e1e210f7b3b23cae24cd555029a6"
+    "bytes": 7772,
+    "sha256": "aff1ca3e526cd360e6dd55e2a4dd920e65ceefcfb1f817bc6c4b49fd9314421b"
+  },
+  {
+    "path": "Start-Local.ps1",
+    "bytes": 306,
+    "sha256": "de0febe24ee94fad25fccf956c3c44c3df8b51d37a3bda5ac7e6721ec94f07e4"
   },
   {
     "path": "Stop-Local.command",
@@ -46,8 +91,13 @@
   },
   {
     "path": "VALIDATION.json",
-    "bytes": 1106,
-    "sha256": "0abb4b9d7e633e99e8e78dd92ef3f207e54b4ba90dcf0faefa2e7a98e4aee633"
+    "bytes": 831,
+    "sha256": "9ed41e3d412ce54953589cf4a3dbc55e1ed7a8ff653e0287ae2a46fa56e3a5cf"
+  },
+  {
+    "path": "append_investigation.py",
+    "bytes": 3177,
+    "sha256": "0b62cb8384c55bf2d7441a944b11b69fb1a006312f5deb0c21dd45ffe5320567"
   },
   {
     "path": "bootstrap-mac.sh",
@@ -55,14 +105,54 @@
     "sha256": "79a0330274eda904e5799c78a9d396adf4bd7170b1b6eeb1ffaa672d57f97272"
   },
   {
+    "path": "build_and_sync.py",
+    "bytes": 20642,
+    "sha256": "595bc49a641077e026dbb71c25e219514dab09598cf59210b08a7e01ea167019"
+  },
+  {
+    "path": "build_portable_zip.py",
+    "bytes": 5602,
+    "sha256": "dc77e20a9ec8e36f417f1de9b6b98d07ea271d259b2065c02562f561a4574704"
+  },
+  {
+    "path": "bundle_runtime.py",
+    "bytes": 1833,
+    "sha256": "78dc9c55c03db7bcec9a54d754d7831762e14f8706fa2c006a7d8ebe9a99b268"
+  },
+  {
+    "path": "cheat-catalog.json",
+    "bytes": 76717,
+    "sha256": "13319c32307d9b746aaa62f0f8ff6f73ad8a9237dffb305a467f6b5dc5814b68"
+  },
+  {
+    "path": "cheats.js",
+    "bytes": 194295,
+    "sha256": "a79525578476621be3a7bced0dfae401047a563df1eda46393a93e7f7bfddf64"
+  },
+  {
     "path": "data-manifest.json",
     "bytes": 393014,
     "sha256": "c5d7b041dbcde22e54f97dc271a52690ea6101391bfda3fb9ecd13d8ef748c1a"
   },
   {
+    "path": "engine_static_evidence.py",
+    "bytes": 8415,
+    "sha256": "43a22bc326ebace957f872cd572eda042c011dcd890e5046b1d86bbae95efa92"
+  },
+  {
+    "path": "freeze_watch.mjs",
+    "bytes": 7149,
+    "sha256": "fce96cdd98e9bd74e844ca741db729e48036e9c967901f9a68e28ce88d99c5ac"
+  },
+  {
     "path": "game.js",
-    "bytes": 124240,
-    "sha256": "81a7d6e912238de3d89bcafb1b01450671c6793167babb0ec970f308f454bcf0"
+    "bytes": 256548,
+    "sha256": "cff2e287bed2912717b22d78633eeb2c5b18a8c8118cc1f9dcb4f16066c4edac"
+  },
+  {
+    "path": "generate_all.py",
+    "bytes": 14579,
+    "sha256": "190c3b829b867205b07ffb9d74f800ab7264be6df9559f1b51017c5f4cd2c67c"
   },
   {
     "path": "headers.txt",
@@ -71,23 +161,33 @@
   },
   {
     "path": "homepage.html",
-    "bytes": 44484,
-    "sha256": "46c1c36f40e0c20e42c05157e6b8d41343d379d705677c2c867ede8dd6d73d49"
+    "bytes": 78578,
+    "sha256": "0c95b748decf708f5617c3488924b107afb2246fa1eed10afad153cfb7fc0117"
+  },
+  {
+    "path": "inspect_assets.py",
+    "bytes": 4340,
+    "sha256": "f77219ea6ec7e1985d5a0af855313edc954e9605d8aa54f44e3758f955dc117d"
   },
   {
     "path": "io_worker.js",
-    "bytes": 40643,
-    "sha256": "5d76ffe7d8988411d83a3e477de391411a702f65b38f45b48ae1569b32af5286"
+    "bytes": 43247,
+    "sha256": "b5863caee12c9bbd7a5aead0545ca93799cbeed013da6e55ba8ab343680a305e"
   },
   {
     "path": "launch_mac.py",
-    "bytes": 3259,
-    "sha256": "2b555bb0231b8a82d10eea21a7bcb43a3905801f8580aa6d0a0fd68bcb87a3c5"
+    "bytes": 6034,
+    "sha256": "9e181a77854d7fd43df051c7ef3ab9b3951373da0a2e7e9cef6763e0e3183008"
   },
   {
     "path": "loader.js",
-    "bytes": 9055,
-    "sha256": "d8b872b7d2756f16f83f2c1dd9ce427d8c41492965089d7ba61ee98db7472b57"
+    "bytes": 10912,
+    "sha256": "e3395ce71dc5ebdb90d3443ddad3c0b2a2ae776ed20cea6376ffdc7f7039ce5a"
+  },
+  {
+    "path": "local-profile.json",
+    "bytes": 151,
+    "sha256": "69652546777f2bd2f05ead8ae95d89e76241fc0f9c0becc3b81aa25c70811e47"
   },
   {
     "path": "mac-index-patch.json",
@@ -96,38 +196,43 @@
   },
   {
     "path": "mac-profile.json",
-    "bytes": 247,
-    "sha256": "d32414d6d7c928f4f589e70908ce8c572754e4875958cfef654ee723ea3bc865"
+    "bytes": 150,
+    "sha256": "e6a4695b1af4f799b39a6768eee778d2af40e7e4d085d56d70d2045b118056c3"
   },
   {
-    "path": "media/Screenshot 2026-10-07 172103.png",
-    "bytes": 75101,
-    "sha256": "cd4a17cee97f51eac3a962c8370a93cf193c1b87819460e0ebe97bdaad9f5293"
+    "path": "mirror_site.py",
+    "bytes": 10477,
+    "sha256": "a887304629cf02f10aa7dcdbcd7e485a73b7bd17c1e059c5a149f9c32ec74916"
   },
   {
-    "path": "media/Screenshot 2026-10-07 172216.png",
-    "bytes": 22699,
-    "sha256": "86904ddded74977d57ea9e87843f2c8907ce9bed9e9b6aa846e163a1d70ab987"
+    "path": "mods/README.md",
+    "bytes": 2795,
+    "sha256": "a83b10854b2a58b46f89939b1ff34cd1970cf8e472a51157760d16af9775b9ee"
   },
   {
-    "path": "media/Screenshot 2026-10-07 172718.png",
-    "bytes": 5265,
-    "sha256": "73c706be9d1bd35314391eabe54e8b2855d258a2497bb32db19a387bf1192249"
+    "path": "mods/_template/main.js",
+    "bytes": 99,
+    "sha256": "510a58ef9f187a158951a934b77ca84fb0b54350f4cdcd1bb5a50a311049f44c"
   },
   {
-    "path": "media/Screenshot 2026-10-07 172758.png",
-    "bytes": 12819,
-    "sha256": "f8e3799ee816b9fa5f6a406de16cdac4205e607a15112cc2601964eedfe53290"
+    "path": "mods/_template/mod.json",
+    "bytes": 219,
+    "sha256": "b5070ddcddf6ad1e89ced15f4606e1711ee88ae42ed90121603e31f1cc8b114f"
   },
   {
     "path": "prepare_mac.py",
-    "bytes": 6007,
-    "sha256": "2d174b2693260956fc7715164182986804b63a99e503f27e59e376c3cfc2ca44"
+    "bytes": 6502,
+    "sha256": "9f0e3cb67c6fd3ee3dd870a3f5f1e8bef130259c7a2dca436de6d4eb88571cd6"
+  },
+  {
+    "path": "public_discovery.py",
+    "bytes": 8282,
+    "sha256": "13df7ffe7bc9594df53e1bfb8288ec6181ccca7e68c1ad77304f1a235c32661a"
   },
   {
     "path": "serve_local.py",
-    "bytes": 8477,
-    "sha256": "723726fe0482d852daa9c37e792bef769b4ef67826411dd67a13e739c96827d8"
+    "bytes": 21878,
+    "sha256": "b8421b341003487952f4fd22c9f94f9a931312b6093a42626a810ee9f92a257a"
   },
   {
     "path": "shader-index.json",
@@ -135,8 +240,28 @@
     "sha256": "11c331895051b30126980ef666bd8935314ab400348b17c56ef8fe8983f50ee0"
   },
   {
+    "path": "src_cheats.js",
+    "bytes": 91993,
+    "sha256": "927670472d6ebc26aa01b59f96ff5b34aee8d8d33a812a01e8a24fb481c16a17"
+  },
+  {
+    "path": "src_trainer.js",
+    "bytes": 132104,
+    "sha256": "9e7bc599bad68927afd35bbc6f020d8101cb6f78f24d9c83e33fe5246317138d"
+  },
+  {
+    "path": "update_cheats.py",
+    "bytes": 32879,
+    "sha256": "1afd23098e0ac97468d3f04825e75ef12dd6a877345d7faf698f318f5e6e3739"
+  },
+  {
+    "path": "verify_snapshot.py",
+    "bytes": 3907,
+    "sha256": "5ed8c682203f0a8cbd9995844283857625a02fafdc3227570b0993732bc0c8f0"
+  },
+  {
     "path": "wgpu_worker.js",
-    "bytes": 191062,
-    "sha256": "e1b83d2b10a98d29d8f7ac45a4e42f68486144a8046df688667891af034716c7"
+    "bytes": 206806,
+    "sha256": "2a7d8f0aa59f973e946d15399cc7181ce936bd964005190df43b769fbc23969d"
   }
 ]

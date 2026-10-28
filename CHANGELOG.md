@@ -9,7 +9,9 @@
 - Larger local server: saves, mods, byte ranges, batch I/O.
 - First launch now installs the page files into the mirror with backups; `prepare_mac.py --restore` undoes it.
 - Readable sources (`src_trainer.js`, `src_cheats.js`) and the `build_and_sync.py` build step are included.
-- New README.
+- Newer `io_worker.js` (persistent block cache) and `wgpu_worker.js` (minimap road fix) are now included and installed on first launch.
+- `Stop-Local.command` and the Desktop shortcut work with the free-port launcher.
+- New README with macOS screenshots.
 
 ## v1.0.0
 

@@ -581,9 +581,18 @@ function dumpMemBreakdown() {
 	logLine('mem: textures by format: ' + [...byFmt].sort((a, b) => b[1][0] - a[1][0]).slice(0, 10).map(([k, [b, n]]) => k + ' ' + (b / 1048576 | 0) + 'MB x' + n).join(' | '));
 }
 
+// CPU copies so a triangle-adjacency draw can be reindexed. The radar geometry shader
+// (GS_TexturedUnlit) reads TRIANGLELIST_ADJ and emits vertices 0, 2 and 4. WebGPU has no
+// geometry stage, so without this the minimap mesh is rasterized as a plain triangle list
+// and the roads never appear. Index buffers are kept up to 2 MB; other small buffers are
+// mirrored only so a later copy into an index buffer still has the bytes.
+let cpuMirrorBytes = 0;
+const CPU_MIRROR_MAX = 128 * 1024 * 1024;
 function createBuffer(id, size, bind, misc, stride) {
 	const o = { kind: 'buffer', uid: id, size, bind, misc, stride, gpu: null, shadow: null, version: 0 };
 	if (bind & 4) { o.shadow = new Uint8Array(size); }		// constant buffers live in this shadow and are copied to the uniform ring per draw
+	else if ((bind & 2) && size > 0 && size <= 2 * 1024 * 1024) o.indexCpu = new Uint8Array(size);
+	else if (size > 0 && size <= 1024 * 1024 && cpuMirrorBytes + size <= CPU_MIRROR_MAX) { o.bytesCpu = new Uint8Array(size); cpuMirrorBytes += size; }
 	let usage = GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
 	if (bind & 1) usage |= GPUBufferUsage.VERTEX;
 	if (bind & 2) usage |= GPUBufferUsage.INDEX;
@@ -601,8 +610,11 @@ function createBuffer(id, size, bind, misc, stride) {
 function uploadBuffer(id, offset, size, dataOff, noOverwrite) {
 	const o = objs.get(id);
 	if (!o) return;
-	if (o.shadow) { o.shadow.set(u8.subarray(dataOff, dataOff + size), offset); o.version++; }
-	if (debugDraw && o.gpu && !o.shadow) { if (!o.dbg) o.dbg = new Uint8Array(o.size); o.dbg.set(u8.subarray(dataOff, dataOff + size), offset); }
+	if (o.shadow) o.shadow.set(u8.subarray(dataOff, dataOff + size), offset);
+	if (o.indexCpu && offset + size <= o.indexCpu.length) o.indexCpu.set(u8.subarray(dataOff, dataOff + size), offset);
+	if (o.bytesCpu && offset + size <= o.bytesCpu.length) o.bytesCpu.set(u8.subarray(dataOff, dataOff + size), offset);
+	if (o.shadow || o.indexCpu || o.bytesCpu) o.version++;
+	if ((debugDraw || (!isNode && id === 685)) && o.gpu && !o.shadow) { if (!o.dbg) o.dbg = new Uint8Array(o.size); o.dbg.set(u8.subarray(dataOff, dataOff + size), offset); }
 	if (o.gpu) {
 		if (!noOverwrite && usedInEncoder.has(o)) flush('buffer upload');		// a recorded draw still reads the old contents: D3D semantics need them (not after a no-overwrite map: the app promises those bytes are unused)
 		const n = size & ~3;
@@ -640,6 +652,7 @@ function createShader(p, n) {
 	const o = { kind: 'shader', stage, hash, sig, program: undefined };
 	objs.set(id, o);
 	shadersByHash.set(hash, o);
+	if (hash === RADAR_VS || hash === RADAR_PS || hash === RADAR_AA || hash === '4f71b06f26f978e8') logOnce('radar-create-' + hash, '[page radar] create stage=' + stage + ' hash=' + hash);
 	if (isNode) shadersReady++;		// Node reads the sources from disk when needed
 	prefetchShader(o);
 }
@@ -1678,7 +1691,19 @@ const skipReasons = new Map();
 // D3D11 features the mirror approximates or ignores: what is used (by pipeline label / sampler), counted for the exit report
 const approx = new Map();
 function noteApprox(feature, detail) { const k = feature + ': ' + detail; approx.set(k, (approx.get(k) || 0) + 1); }
-function skipDraw(why) { skippedDraws++; skipReasons.set(why, (skipReasons.get(why) || 0) + 1); }
+// Radar roads are the AA pass (PS_TexturedUnlitAA + GS_TexturedUnlit). WebGPU has no
+// geometry stage, so each 6-vertex adjacency group has to be reindexed to corners 0, 2, 4.
+const RADAR_VS = '6e3b688101fd34ef', RADAR_PS = 'abf1d9a411787454', RADAR_AA = '5c5d5123dfb3dd00';
+let radarHits = 0, radarSkips = 0, radarExpanded = 0, radarLast = 'none';
+function isRadarShader(sh) { return !!sh && (sh.hash === RADAR_VS || sh.hash === RADAR_PS || sh.hash === RADAR_AA); }
+function skipDraw(why) {
+	const v = objs.get(S.shader[0]), p = objs.get(S.shader[1]);
+	if (isRadarShader(v) || isRadarShader(p)) {
+		radarSkips++; radarLast = 'skip';
+		logOnce('radarskip' + why, '[page radar] skipped: ' + why + ' ps=' + (p && p.hash) + ' topo=' + S.topo);
+	}
+	skippedDraws++; skipReasons.set(why, (skipReasons.get(why) || 0) + 1);
+}
 
 // Dynamic offsets through the typed-array overload (spec: dynamicOffsetsData, start, length): Chrome converts a JS array argument to a new sequence on every call. Browser only:
 // the Node binding is not known to implement that overload.
@@ -1701,7 +1726,70 @@ function setScissorOnce(x, y, w, h) {
 	const sc = passSt.sc || (passSt.sc = [0, 0, 0, 0]); sc[0] = x; sc[1] = y; sc[2] = w; sc[3] = h;
 }
 
+const adjCache = new Map(), adjSeqCache = new Map();
+function expandAdjSeq(groups, origin) {
+	if (groups > 200000) return null;
+	const key = groups + ':' + origin;
+	const hit = adjSeqCache.get(key);
+	if (hit) return hit;
+	if (adjSeqCache.size > 32) { for (const v of adjSeqCache.values()) v.gpu.destroy(); adjSeqCache.clear(); }
+	const words = new Uint32Array(groups * 3);
+	for (let k = 0; k < groups; k++) { const b = (origin + k * 6) >>> 0; words[k * 3] = b; words[k * 3 + 1] = b + 2; words[k * 3 + 2] = b + 4; }
+	const gpu = device.createBuffer({ size: words.byteLength, usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST });
+	device.queue.writeBuffer(gpu, 0, words);
+	const rec = { gpu };
+	adjSeqCache.set(key, rec);
+	logOnce('adj-expand', '[page radar] triangle-adj draws keep vertices 0, 2, 4 (' + groups + ' groups)');
+	return rec;
+}
+function expandAdjIndexed(bufId, fmt, offset, start, groups) {
+	if (groups > 200000) return null;
+	const o = objs.get(bufId);
+	if (!o || !o.indexCpu) return null;
+	const step = fmt === 57 ? 2 : 4;
+	const byteBegin = offset + start * step;
+	const byteLen = groups * 6 * step;
+	if (byteBegin < 0 || byteBegin + byteLen > o.indexCpu.length) return null;
+	const key = bufId + ':' + o.version + ':' + byteBegin + ':' + groups;
+	const hit = adjCache.get(key);
+	if (hit) return hit;
+	if (adjCache.size > 96) { for (const v of adjCache.values()) v.gpu.destroy(); adjCache.clear(); }
+	const view = new DataView(o.indexCpu.buffer, o.indexCpu.byteOffset + byteBegin, byteLen);
+	const words = new Uint32Array(groups * 3);
+	for (let k = 0; k < groups; k++) {
+		const base = k * 6 * step;
+		words[k * 3] = step === 2 ? view.getUint16(base, true) : view.getUint32(base, true);
+		words[k * 3 + 1] = step === 2 ? view.getUint16(base + step * 2, true) : view.getUint32(base + step * 2, true);
+		words[k * 3 + 2] = step === 2 ? view.getUint16(base + step * 4, true) : view.getUint32(base + step * 4, true);
+	}
+	const gpu = device.createBuffer({ size: Math.max(4, words.byteLength), usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST });
+	device.queue.writeBuffer(gpu, 0, words);
+	const rec = { gpu };
+	adjCache.set(key, rec);
+	logOnce('adj-expand', '[page radar] triangle-adj indexed draws keep vertices 0, 2, 4 (' + groups + ' groups, first ' + words[0] + ',' + words[1] + ',' + words[2] + ')');
+	return rec;
+}
+// MINIMAP FIX: the radar map is composited from the radar render target (RGB = map) into the backbuffer with SRC_ALPHA blending, but the
+// target's alpha (written by the alpha-only mask passes im::PS_Blit / im::PS_BlitDepthToAlpha) stays 0 in this port, so the map never shows.
+// Composite that single HUD blit opaque instead.
+const MM_BLEND_ID = 0x7fff0001;
+function minimapOpaqueBlend() {
+	if (!objs.has(MM_BLEND_ID)) { const w = new Array(2 + 8 * 8).fill(0); for (let r = 0; r < 8; r++) { const q = 2 + r * 8; w[q + 1] = 2; w[q + 2] = 1; w[q + 3] = 1; w[q + 4] = 2; w[q + 5] = 1; w[q + 6] = 1; w[q + 7] = 15; } objs.set(MM_BLEND_ID, { kind: 'blend', words: w }); }
+	return MM_BLEND_ID;
+}
 function doDraw(p) {
+	if (!isNode && S.rt[0] && S.rt[0].tex === 1 && S.shader[1] && S.scissors[0] && S.blend.id) {
+		const sc = S.scissors[0], ps = objs.get(S.shader[1]), rec = ps && shaderIndex && shaderIndex[ps.hash];
+		if (rec && rec.effect === 'im' && rec.program === 'PS_Blit' && sc[2] <= 520 && sc[1] >= 800 && sc[3] >= 1000) {
+			// the radar target is 512x250 but the HUD frame (the Scaleform minimap frame) is 20,861..308,1064: the alpha mask used to clip it
+			const saved = S.blend.id, savedSc = S.scissors[0].slice(); S.blend.id = minimapOpaqueBlend(); pdirty = true;
+			S.scissors[0] = [Math.max(sc[0], 20), Math.max(sc[1], 861), Math.min(sc[2], 308), Math.min(sc[3], 1064)];
+			try { return doDrawInner(p); } finally { S.blend.id = saved; S.scissors[0] = savedSc; pdirty = true; }
+		}
+	}
+	return doDrawInner(p);
+}
+function doDrawInner(p) {
 	// kind (0 draw, 1 indexed, 2 instanced, 3 indexed instanced), a..: vertexCount/indexCount, instanceCount, start, baseVertex, startInstance
 	let dbgLimit = -1;
 	if (dbgIdx) {
@@ -1713,6 +1801,11 @@ function doDraw(p) {
 	const vsObj = S.shader[0] ? objs.get(S.shader[0]) : null;
 	if (!vsObj) { skipDraw('if (!vsObj) { skippedDraws++; return; }'); return; }
 	const psObj = S.shader[1] ? objs.get(S.shader[1]) : null;
+	const radarVs = vsObj.hash === RADAR_VS, radarAa = psObj && psObj.hash === RADAR_AA, radarDraw = radarVs || (psObj && (psObj.hash === RADAR_PS || psObj.hash === RADAR_AA));
+	if (radarDraw) {
+		radarHits++; radarLast = 'draw topo=' + S.topo + ' ps=' + (psObj && psObj.hash) + ' n=' + count;
+		logOnce('radar-seen-' + S.topo + '-' + (psObj && psObj.hash), '[page radar] draw topo=' + S.topo + ' kind=' + kind + ' count=' + count + ' ps=' + (psObj && psObj.hash) + ' layout=' + S.layout);
+	}
 	const layout = S.layout ? objs.get(S.layout) : null;
 	if (!layout) { skipDraw('if (!layout) { skippedDraws++; return; }'); return; }
 	const vsProg = shaderProgram(vsObj);
@@ -1725,7 +1818,10 @@ function doDraw(p) {
 	if (!pdirty && lastPl && lastPlPass === passInfo) pl = lastPl;
 	else {
 		pl = getPipeline(vsObj, psObj, vsProg, psProg, layout, passInfo.rtInfo, passInfo.dsFormat);
-		if (pl === PIPELINE_PENDING) { pendingSkips++; skippedDraws++; return; }		// still compiling: looked up again by the next draw (pdirty stays set)
+		if (pl === PIPELINE_PENDING) {
+			if (radarDraw) { radarSkips++; radarLast = 'pending'; logOnce('radar-pending', '[page radar] pipeline pending topo=' + S.topo + ' ps=' + (psObj && psObj.hash) + ' count=' + count); }
+			pendingSkips++; skippedDraws++; return;
+		}		// still compiling: looked up again by the next draw (pdirty stays set)
 		lastPl = pl; lastPlPass = passInfo; pdirty = false;
 	}
 	if (!pl) { skipDraw('if (!pl) { skippedDraws++; return; }'); return; }
@@ -1789,6 +1885,7 @@ function doDraw(p) {
 	const bf = S.blend.factor, ob = passSt.bf;
 	if (!ob || ob[0] !== bf[0] || ob[1] !== bf[1] || ob[2] !== bf[2] || ob[3] !== bf[3]) { pass.setBlendConstant(bf); const sb = passSt.bf || (passSt.bf = [0, 0, 0, 0]); sb[0] = bf[0]; sb[1] = bf[1]; sb[2] = bf[2]; sb[3] = bf[3]; }
 	if (passSt.sref !== S.dss.ref) { pass.setStencilReference(S.dss.ref); passSt.sref = S.dss.ref; }
+	if (!isNode && psProg && psProg.label.startsWith('im::') && (worldSent || passInfo.width < 1024)) { const hud = psProg.label==='im::PS_TexturedUnlit_IM' && S.scissors[0] && S.scissors[0][1] > 600; const key=psProg.label+':'+passInfo.width+'x'+passInfo.height+(hud ? ':t'+S.srv[1][2] : ''); if (!minimapDraws.has(key)) { minimapDraws.add(key); logLine('minimap target '+key); dumpDraw(kind,count,inst,start,baseVertex,vsProg,psProg,layout,g0,g1,true); } }
 	if (debugPs && psProg && psProg.label.includes(debugPs) && debugPsSeen < debugPsN) { debugPsSeen++; dumpDraw(kind, count, inst, start, baseVertex, vsProg, psProg, layout, g0, g1, true); debugPsProbe = { ps: psProg }; }
 	if (debugDraw && drawCount >= debugDraw && drawCount < debugDraw + debugDrawN) dumpDraw(kind, count, inst, start, baseVertex, vsProg, psProg, layout, g0, g1);
 	if (kind >= 4) {
@@ -1814,10 +1911,38 @@ function doDraw(p) {
 			logOnce('clamp' + pl.label, 'draw clamped to its buffers (' + pl.label + '): ' + (indexed ? 'indexed ' : '') + count + ' x ' + inst + ' -> ' + dCount + ' x ' + dInst);
 			if (dCount <= 0 || dInst <= 0) { skipDraw('vertex/instance/index buffer smaller than the draw'); return; }
 		}
-		if (indexed) pass.drawIndexed(dCount, dInst, start, foldV ? 0 : baseVertex, iFirst);
-		else pass.draw(dCount, dInst, vFirst, iFirst);
+		// GS_TexturedUnlit keeps vertices 0, 2 and 4 of each group of 6. Feature level 11 binds
+		// that pass as PS_TexturedUnlitAA. SetUpPriorToDraw's topology word defaults to 35
+		// (3-control-point patch list), so a topo===12 test never sees the mesh.
+		let drewAdj = false;
+		const adjGroups = kind < 4 && dCount >= 6 && dCount % 6 === 0 && (radarAa || S.topo === 12 || S.topo === 13);
+		if (adjGroups) {
+			const groups = (dCount / 6) | 0;
+			const adj = indexed ? expandAdjIndexed(S.ib.buf, S.ib.fmt, S.ib.offset, start, groups) : expandAdjSeq(groups, foldV ? 0 : start);
+			if (adj) {
+				if (passSt.ib !== adj.gpu || passSt.ibFmt !== 'uint32' || passSt.ibOff !== 0) {
+					pass.setIndexBuffer(adj.gpu, 'uint32', 0);
+					passSt.ib = adj.gpu; passSt.ibFmt = 'uint32'; passSt.ibOff = 0;
+				}
+				pass.drawIndexed(groups * 3, dInst, 0, indexed && !foldV ? baseVertex : 0, iFirst);
+				drewAdj = true;
+				radarExpanded++;
+				radarLast = 'expanded ' + groups;
+			} else logOnce('adj-miss', '[page radar] adj-miss indexed=' + indexed + ' buf=' + S.ib.buf + ' groups=' + groups);
+		}
+		if (!drewAdj) {
+			if (indexed) pass.drawIndexed(dCount, dInst, start, foldV ? 0 : baseVertex, iFirst);
+			else pass.draw(dCount, dInst, vFirst, iFirst);
+		}
 	}
 	drawCount++;
+	if (miniDebug && worldSent && psProg) {
+	 const hud = psProg.label==='im::PS_TexturedUnlit_IM' && S.scissors[0] && S.scissors[0][1]>600;
+	 if (hud && !miniTrace) miniTrace=100;
+	 if (miniTrace>0 && !miniCaptured) { miniTrace--; fetch('/log',{method:'POST',body:'[page minimap sequence] '+JSON.stringify({n:drawCount,vs:vsProg.label,ps:psProg.label,rt:S.rt,ds:S.ds,bl:objs.get(S.blend.id)?.words,sc:S.scissors[0]})}).catch(()=>{}); }
+	 if(hud && ++miniTiles===5) miniCapture(S.rt[0].tex,'tiles');
+	 if (miniTiles>=5 && psProg.label==='im::PS_BlitDepthToAlpha' && !miniCaptured) {miniCaptured=true;miniCapture(S.rt[0].tex,'alpha');const srv=objs.get(S.srv[1][5]);if(srv)miniCapture(srv.res,'mask');}
+	}
 	if (nanHuntState === 2) { nanHuntLabel = vsProg.label + ' + ' + (psProg ? psProg.label : '-') + ' (draw ' + drawCount + ')'; nanHuntPs = psProg; }
 	if (shotEvery || shotAllRt) {
 		const t0 = S.rt[0].tex ? objs.get(S.rt[0].tex) : null;
@@ -1828,24 +1953,27 @@ function doDraw(p) {
 	}
 }
 const debugPs = isNode ? (process.env.WGPU_DEBUG_PS || '') : '', debugPsN = isNode ? +(process.env.WGPU_DEBUG_PS_N || 2) : 0;
+// Minimap capture/trace debugging (a readback + 76 KB log posts per boot and a string compare per draw): only with ?minidbg=1
+const miniDebug = !isNode && new URLSearchParams(self.location.search).get('minidbg') === '1';
+const minimapDraws = new Set(); let miniTrace=0,miniTiles=0,miniCaptured=false,miniPresented=false;
 let debugPsSeen = 0, debugPsProbe = null;
 const debugDraw = isNode ? +(process.env.WGPU_DEBUG_DRAW || 0) : 0, debugDrawN = isNode ? +(process.env.WGPU_DEBUG_DRAW_N || 1) : 0;
 function dumpDraw(kind, count, inst, start, baseVertex, vsProg, psProg, layout, g0, g1, allSrv) {
 	const rs = S.rs ? objs.get(S.rs) : null, bl = S.blend.id ? objs.get(S.blend.id) : null, ds = S.dss.id ? objs.get(S.dss.id) : null;
 	const lines = ['DRAW #' + drawCount + ' kind ' + kind + ' count ' + count + ' inst ' + inst + ' start ' + start + ' base ' + baseVertex + ' ' + vsProg.label + ' + ' + (psProg ? psProg.label : '-'),
-		'  viewport ' + JSON.stringify(S.viewports[0]) + ' scissor ' + JSON.stringify(S.scissors[0]) + ' topo ' + S.topo,
+		'  RT '+JSON.stringify(S.rt)+' DS '+JSON.stringify(S.ds)+' viewport ' + JSON.stringify(S.viewports[0]) + ' scissor ' + JSON.stringify(S.scissors[0]) + ' topo ' + S.topo,
 		'  raster ' + (rs ? rs.words.join(',') : 'default') + ' | blend ' + (bl ? bl.words.slice(0, 10).join(',') : 'default') + ' | dss ' + (ds ? ds.words.join(',') : 'default'),
 		'  vs pack ' + (vsProg.pack ? vsProg.pack.members.map((m) => 'b' + m.binding + ':' + m.size).join(' ') : 'none') + ' | ps pack ' + (psProg && psProg.pack ? psProg.pack.members.map((m) => 'b' + m.binding + ':' + m.size).join(' ') : 'none')];
 	for (const e of layout.els) {
 		const vb = S.vb[e.slot], o = vb.buf ? objs.get(vb.buf) : null;
-		if (o && o.dbg) lines.push('  vb bytes @' + vb.offset + ': ' + Array.from(o.dbg.subarray(vb.offset, vb.offset + 40)).join(','));
+		if (o && o.dbg && e.offset === 0) lines.push('  vb floats @'+vb.offset+': '+Array.from(new Float32Array(o.dbg.buffer, vb.offset, Math.min(36, (o.dbg.length-vb.offset)>>2))).map(x=>+x.toPrecision(5)).join(',')+' colors '+Array.from({length:4},(_,i)=>Array.from(o.dbg.subarray(vb.offset+i*vb.stride+24,vb.offset+i*vb.stride+28))));
 		lines.push('  el slot ' + e.slot + ' fmt ' + e.fmt + ' off ' + e.offset + ' vb ' + vb.buf + ' stride ' + vb.stride + ' voff ' + vb.offset + (o ? ' size ' + o.size : ' UNBOUND'));
 	}
 	for (const [st, prog] of [[0, vsProg], [1, psProg]]) {
 		if (!prog || !prog.pack) continue;
 		for (const m of prog.pack.members) {
 			const c = S.cb[st][m.binding], o = c.buf ? objs.get(c.buf) : null;
-			lines.push('  ' + STAGE_NAME[st] + ' cb b' + m.binding + ' buf ' + c.buf + (o && o.shadow ? ' v' + o.version + ' [' + Array.from(new Float32Array(o.shadow.buffer, o.shadow.byteOffset, Math.min(48, o.shadow.length >> 2))).map((x) => +x.toPrecision(4)).join(',') + ']' : ' NO SHADOW'));
+			lines.push('  ' + STAGE_NAME[st] + ' cb b' + m.binding + ' buf ' + c.buf + (o && o.shadow ? ' v' + o.version + ' [' + Array.from(new Float32Array(o.shadow.buffer, o.shadow.byteOffset, Math.min(128, o.shadow.length >> 2))).map((x) => +x.toPrecision(4)).join(',') + ']' : ' NO SHADOW'));
 		}
 	}
 	for (let i = 0; i < (allSrv ? 32 : 8); i++) {
@@ -1854,6 +1982,15 @@ function dumpDraw(kind, count, inst, start, baseVertex, vsProg, psProg, layout, 
 	}
 	lines.push('  srv ps ' + S.srv[1].slice(0, 8).join(',') + ' smp ' + S.smp[1].slice(0, 4).join(','));
 	logLine(lines.join('\n'));
+	if (miniDebug) fetch('/log', {method:'POST',body: '[page minimap draw] '+JSON.stringify(lines)}).catch(() => {});
+}
+async function miniCapture(id,label) {
+ const t=objs.get(id); if(!t || !['bgra8unorm','rgba8unorm','r32float'].includes(t.format))return;
+ flush();const mask=t.format==='r32float',w=mask?t.desc.size.width:Math.min(512,t.desc.size.width),h=mask?t.desc.size.height:Math.min(250,t.desc.size.height),oy=mask?0:t.desc.size.height-h,bpr=Math.ceil(w*4/256)*256;
+ const rb=device.createBuffer({size:bpr*h,usage:GPUBufferUsage.COPY_DST|GPUBufferUsage.MAP_READ}),enc=device.createCommandEncoder();enc.copyTextureToBuffer({texture:t.tex,origin:{x:0,y:oy,z:0}},{buffer:rb,bytesPerRow:bpr},{width:w,height:h});device.queue.submit([enc.finish()]);await rb.mapAsync(GPUMapMode.READ);const raw=new Uint8Array(rb.getMappedRange()),dv=new DataView(raw.buffer),step=mask?8:3,ow=Math.ceil(w/step),oh=Math.ceil(h/step),out=new Uint8Array(ow*oh*4);let nz=0,max=0;
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*bpr+x*4;if(mask){const v=dv.getFloat32(i,true);if(v)nz++;max=Math.max(max,v);}}
+ for(let y=0;y<oh;y++)for(let x=0;x<ow;x++){const i=y*step*bpr+x*step*4,o=(y*ow+x)*4;if(mask){const v=dv.getFloat32(i,true)?255:0;out.set([v,v,v,255],o);}else if(t.format==='bgra8unorm')out.set([raw[i+2],raw[i+1],raw[i],raw[i+3]],o);else out.set(raw.subarray(i,i+4),o);}
+ rb.unmap();rb.destroy();fetch('/log',{method:'POST',body:'[page minimap capture] '+JSON.stringify({label,id,format:t.format,w:ow,h:oh,nz,max,pixels:btoa(String.fromCharCode(...out))})}).catch(()=>{});
 }
 async function probeUavs() {
 	flush();
@@ -1973,6 +2110,11 @@ function copyRegion(dstId, dstSub, dx, dy, dz, srcId, srcSub, hasBox, l, t, f, r
 		if (!s.gpu || !d.gpu) return;
 		const size = hasBox ? r - l : Math.min(s.size, d.size);
 		getEncoder().copyBufferToBuffer(s.gpu, hasBox ? l : 0, d.gpu, dx, size & ~3);
+		const srcBytes = s.indexCpu || s.bytesCpu || s.shadow;
+		if (d.indexCpu && srcBytes) {
+			const n = size & ~3, srcOff = hasBox ? l : 0;
+			if (srcOff >= 0 && srcOff + n <= srcBytes.length && dx + n <= d.indexCpu.length) { d.indexCpu.set(srcBytes.subarray(srcOff, srcOff + n), dx); d.version++; }
+		}
 		usedInEncoder.add(s); usedInEncoder.add(d);
 		return;
 	}
@@ -2358,7 +2500,7 @@ async function readback(p) {
 		endPass();
 		getEncoder().copyBufferToBuffer(src.gpu, hasBox ? l : 0, rb, 0, rbSize);
 		flush('readback');
-		await rb.mapAsync(GPUMapMode.READ);
+		await gpuWait(rb.mapAsync(GPUMapMode.READ), 'readback map (buffer)');
 		refreshViews();
 		u8.set(new Uint8Array(rb.getMappedRange(), 0, n), addr);
 		rb.unmap(); releaseBuffer(rb, rbSize, MU);
@@ -2378,7 +2520,7 @@ async function readback(p) {
 	getEncoder().copyTextureToBuffer({ texture: src.tex, mipLevel: mip, origin: { x: x0, y: y0, z: three ? z0 : layer } }, { buffer: rb, bytesPerRow: bpr, rowsPerImage: by },
 		{ width: bx * bi.bw, height: by * bi.bh, depthOrArrayLayers: three ? d : 1 });
 	flush('readback');
-	await rb.mapAsync(GPUMapMode.READ);
+	await gpuWait(rb.mapAsync(GPUMapMode.READ), 'readback map (texture)');
 	refreshViews();
 	const data = new Uint8Array(rb.getMappedRange());
 	for (let z = 0; z < d; z++) for (let row = 0; row < by; row++)
@@ -2644,6 +2786,7 @@ const shotPrefix = isNode ? (process.env.WGPU_SHOT_PREFIX || 'D:/wasm_tmp/shot_'
 const shotAllRt = !isNode && new URLSearchParams(self.location.search).get('shotrt') === '1';		// the page's ?shotrt=1 (with ?shot=N): see present()
 let shotAllRtDone = false;
 async function present(id) {
+ if(miniDebug && miniCaptured && !miniPresented){miniPresented=true;miniCapture(id,"present");}
 	const t = objs.get(id);
 	if (t && canvasCtx) {
 		endPass();
@@ -2682,6 +2825,17 @@ async function present(id) {
 		if (!fpsT0) { fpsT0 = now; fpsCount0 = presentCount; fpsDraw0 = drawCount; }
 		else if (now - fpsT0 >= 10000) {
 			const fr = presentCount - fpsCount0;
+			if (worldSent) {
+				logOnce('supertile-diag', '[page minimap flags] '+[u8[6974078],u8[6974296],new DataView(mem.buffer).getInt32(19538096,true),u8[19538225],u8[19538227]].join(',')+' [page minimap native] '+JSON.stringify(Array.from({length:72},(_,i)=>{ const p=19551280+i*120,d=new DataView(mem.buffer); return [i,u8[p+8],d.getInt32(p+12,true),d.getUint16(p+16,true),Array.from({length:9},(_,j)=>d.getUint32(p+24+j*8,true))]; })));
+				let activeTiles = 0;
+				const dv = new DataView(mem.buffer);
+				for (let i = 0; i < 72; i++) {
+					const tp = 19551280 + i * 120;
+					if (u8[tp + 8] !== 1 || dv.getInt32(tp + 12, true) === -1 || (dv.getUint16(tp + 16, true) & 32512) === 32512) continue;
+					for (let j = 0; j < 9; j++) if (dv.getUint32(tp + 24 + j * 8, true)) { activeTiles++; break; }
+				}
+				logLine('[page radar] beat enabled=' + u8[19538228] + ' activeTiles=' + activeTiles + ' hits=' + radarHits + ' skips=' + radarSkips + ' expanded=' + radarExpanded + ' last=' + radarLast);
+			}
 			logLine('fps: ' + (fr * 1000 / (now - fpsT0)).toFixed(1) + ' (' + fr + ' frames, ' + (((drawCount - fpsDraw0) / Math.max(1, fr)) | 0) + ' draws/frame, ' + ((submits - submits0) / Math.max(1, fr)).toFixed(1) + ' submits/frame: ' + ([...flushReasons].sort((a, b) => b[1] - a[1]).map(([k, n]) => k + ' ' + (n / Math.max(1, fr)).toFixed(1)).join(', ') || 'none') + '), draws waiting for a compiling pipeline +' + (pendingSkips - pendingSkips0) + ', validation errors +' + (errorCount - errorCount0) + ', clamped draws +' + (clampedDraws - clampedDraws0) + ', bind groups +' + (bgCreated - bgCreated0) + ' (cache ' + bindGroupCache.size + ', evicted ' + bgEvicted + '), pipelines +' + (pipeCreates - pipeCreates0) + ' (' + pipeMs.toFixed(0) + ' ms), worker busy ' + (busyMs * 100 / Math.max(1, busyMs + idleMs)).toFixed(0) + '% (' + (busyMs / Math.max(1, fr)).toFixed(1) + ' ms/frame)');
 			busyMs = idleMs = 0; pipeCreates0 = pipeCreates; pipeMs = 0; bgCreated0 = bgCreated; submits0 = submits; flushReasons.clear(); errorCount0 = errorCount; clampedDraws0 = clampedDraws; pendingSkips0 = pendingSkips;
 			if (spikeCount || over25) {
@@ -2764,9 +2918,43 @@ async function present(id) {
 	frameSlotDone[ubo.slot] = device.queue.onSubmittedWorkDone();
 	ubo.slot = (ubo.slot + 1) % FRAME_SLOTS; ubo.chunk = 0; ubo.off = 0; ubo.frame++;
 	const tw0 = performance.now();
-	if (frameSlotDone[ubo.slot]) await frameSlotDone[ubo.slot];		// the ring slot we are about to reuse must be idle
+	if (frameSlotDone[ubo.slot]) await gpuWait(frameSlotDone[ubo.slot], 'present slot fence');		// the ring slot we are about to reuse must be idle
 	fr.wait += performance.now() - tw0;
 }
+
+// ---- freeze guard -------------------------------------------------------------------------------------------------------------------------------
+// Reported freeze: the picture stops while the sound keeps playing (always at the same place of a mission). The engine then waits on this worker: for a frame fence, the present's
+// frame-slot fence, or a readback it asked for (the engine thread blocks on a flag until the mapping completes). If the GPU or its completion callback never answers, nothing here ever
+// moved on. gpuWait() gives each of those waits a limit (2.5 s) and then goes on (stale readback data at worst; the engine runs again), and says so in the log together with the
+// state; the watchdog below logs a RENDER STALL line with the same state when no frame has been presented for 3 s while commands are waiting.
+let gpuTimeouts = 0, waitSite = '', waitSince = 0, lastLoopOp = 0;
+function diagState() {
+	let ring = '';
+	try { ring = ' ring ' + Atomics.load(i32, ringW) + '/' + Atomics.load(i32, ringW + 1); } catch (e) {}
+	return 'present #' + presentCount + ' (' + (lastPresentT ? ((performance.now() - lastPresentT) / 1000).toFixed(1) + ' s ago' : 'never') + '), pending events ' + pendingEvents.length + ', resolves ' + pendingResolve.length + ring +
+		', bind groups ' + bindGroupCache.size + ', textures ' + texCount + ' (' + (texBytesAlive / 1048576 | 0) + ' MB), validation errors ' + errorCount + ', last op ' + lastLoopOp;
+}
+function gpuWait(promise, site, ms) {
+	const limit = ms || 2500;
+	let timer = 0;
+	waitSite = site; waitSince = performance.now();
+	return Promise.race([promise, new Promise((resolve) => { timer = setTimeout(() => {
+		gpuTimeouts++;
+		if (gpuTimeouts <= 25) logLine('WAIT TIMEOUT: ' + site + ' did not complete within ' + limit + ' ms (GPU hang or lost completion), continuing (#' + gpuTimeouts + '): ' + diagState());
+		resolve('timeout');
+	}, limit); })]).finally(() => { clearTimeout(timer); if (waitSite === site) waitSite = ''; });
+}
+let stallLoggedAt = 0, stallLogs = 0;
+if (typeof isNode === 'undefined' || !isNode) setInterval(() => {
+	if (!worldSent || !lastPresentT) return;
+	const now = performance.now(), quiet = now - lastPresentT;
+	if (quiet < 3000 || now - stallLoggedAt < 5000 || stallLogs >= 30) return;
+	let busy = false;
+	try { busy = Atomics.load(i32, ringW) !== Atomics.load(i32, ringW + 1); } catch (e) {}
+	if (!busy && !waitSite) return;		// idle because the engine is idle (hidden tab, pause), not because this worker is stuck
+	stallLoggedAt = now; stallLogs++;
+	logLine('RENDER STALL: no frame for ' + (quiet / 1000).toFixed(1) + ' s' + (waitSite ? ', stuck in "' + waitSite + '" for ' + ((now - waitSince) / 1000).toFixed(1) + ' s' : ', not waiting on the GPU (busy loop or blocked)') + ': ' + diagState());
+}, 1000);
 
 // ---- command dispatcher ---------------------------------------------------------------------------------------------------------------
 function setRange(dst, start, n, src) { for (let i = 0; i < n; i++) dst[start + i] = src(i); }
@@ -2779,13 +2967,14 @@ let yieldResolve = null;
 yieldChannel.port1.onmessage = () => { const r = yieldResolve; yieldResolve = null; if (r) r(); };
 if (yieldChannel.port1.unref) { yieldChannel.port1.unref(); yieldChannel.port2.unref(); }
 function yieldTask() { return new Promise((res) => { yieldResolve = res; yieldChannel.port2.postMessage(0); }); }
-let sinceYield = 0, executedLocal = 0, lastYieldT = 0;
+let sinceYield = 0, executedLocal = 0, lastYieldT = 0, rbSlowLogged = 0;
 
 async function runCommands(tail, head) {
 	// executes [tail, head) (byte offsets relative to ringBase); returns the new tail
 	while (tail !== head) {
 		const base = ringW + (tail >> 2);
 		const op = u32[base], n = u32[base + 1];
+		lastLoopOp = op;
 		if (op === OP.WRAP) { tail = RING_DATA; continue; }
 		const p = base + 2;
 		switch (op) {		// numeric labels (OP.* in comments): V8 compiles constant Smi cases to a jump table; `case OP.X` was a chain of property loads and compares per command
@@ -2801,6 +2990,8 @@ async function runCommands(tail, head) {
 				if (usedInEncoder.has(o)) flush('destroy');
 				if (o.tex) { o.tex.destroy(); texBytesAlive -= o.bytes || 0; texCount--; }
 				if (o.gpu) { o.gpu.destroy(); bufBytesAlive -= o.bytes || 0; }
+				if (o.bytesCpu) cpuMirrorBytes -= o.bytesCpu.byteLength;
+				if (o.indexCpu) { for (const k of [...adjCache.keys()]) if (k.startsWith(u32[p] + ':')) { adjCache.get(k).gpu.destroy(); adjCache.delete(k); } }
 				objs.delete(u32[p]);
 			}
 			break;
@@ -2810,7 +3001,7 @@ async function runCommands(tail, head) {
 		case 7 /* PRESENT */: await present(u32[p]); refreshViews(); break;
 		case 8 /* FENCE */: {
 			flush('fence');
-			await device.queue.onSubmittedWorkDone();
+			await gpuWait(device.queue.onSubmittedWorkDone(), 'frame fence');
 			refreshViews();
 			const addr = u32[p] + u32[p + 1] * 4294967296;
 			Atomics.store(i32, w32(addr), u32[p + 2] | 0);
@@ -2861,7 +3052,8 @@ async function runCommands(tail, head) {
 		case 42 /* READBACK */: {		// the copy is recorded and submitted now (queue order is kept); only the mapping is awaited, without blocking this command loop
 			const flagAddr = u32[p + 15] + u32[p + 16] * 4294967296;
 			const done = () => { if (flagAddr) { refreshViews(); Atomics.store(i32, w32(flagAddr), 0); Atomics.notify(i32, w32(flagAddr)); } };
-			readback(p).catch((e) => logLine('readback failed: ' + (e && e.message || e))).finally(done);
+			const rbT0 = performance.now();
+			readback(p).catch((e) => logLine('readback failed: ' + (e && e.message || e))).finally(() => { const dt = performance.now() - rbT0; if (dt > 40 && ++rbSlowLogged <= 40) logLine('[pause diag] readback took ' + dt.toFixed(0) + ' ms (src ' + u32[p] + ' size ' + u32[p + 14] + ')'); done(); });
 			break;
 		}
 		case 38 /* SET_UAVS */: { bindEpoch[u32[p]]++; const st = u32[p], s0 = u32[p + 1], c = u32[p + 2]; for (let i = 0; i < c && s0 + i < 8; i++) { S.uav[st][s0 + i] = u32[p + 3 + i]; if (u32[p + 3 + c + i] !== 0xffffffff) setUavCounter(u32[p + 3 + i], u32[p + 3 + c + i]); } break; }
@@ -2961,7 +3153,7 @@ async function start(msg) {
 if (!isNode) {
 	self.addEventListener('error', (e) => logLine('worker error: ' + e.message + ' ' + e.filename + ':' + e.lineno));
 	self.addEventListener('unhandledrejection', (e) => logLine('worker rejection: ' + (e.reason && e.reason.stack || e.reason)));
-	logLine('worker script loaded');
+	logLine('worker script loaded; radar diagnostics enabled');
 	self.postMessage({ loaded: true });		// loader.js waits for this before it starts the engine (see there)
 }
 if (isNode && parentPort) parentPort.on('message', (m) => { start(m); });

@@ -22,7 +22,8 @@ def atomic(path, data):
     try: os.replace(temporary, path)
     finally: temporary.unlink(missing_ok=True)
 
-LAYER = [("homepage.html", "index.html"), ("cheats.js", "cheats.js"), ("loader.js", "b/8b0b5899ed/loader.js"), ("game.js", "b/8b0b5899ed/game.js")]
+LAYER = [("homepage.html", "index.html"), ("cheats.js", "cheats.js"), ("loader.js", "b/8b0b5899ed/loader.js"), ("game.js", "b/8b0b5899ed/game.js"),
+         ("io_worker.js", "b/8b0b5899ed/io_worker.js"), ("wgpu_worker.js", "b/8b0b5899ed/wgpu_worker.js")]
 
 def sync_layer(root, backup):
     """Install this repo's page files (menu, trainer, cheats, loader) over the mirror's. The mirror's originals are saved once under backup/layer/."""

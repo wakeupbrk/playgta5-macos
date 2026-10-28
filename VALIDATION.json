@@ -1,16 +1,17 @@
 {
+  "version": "2.0.0",
   "checks": [
-    "Python syntax, zsh syntax and executable launcher permissions",
-    "Upstream README preserved verbatim; original credits and bottom Telegram link retained",
-    "Public package contains no personal paths or private Tailscale identifiers",
-    "Missing assets reported without starting or downloading anything",
-    "Unsupported mirror version left untouched",
-    "Real original engine/index transform exactly to the working HD30 version; setup is idempotent",
-    "Backup restoration, existing custom profile preservation and optional original-engine mode",
-    "Private loopback server, isolation headers, persistent-connection ranges, invalid ranges, plain/gzip batch reads and path traversal rejection",
-    "App wrapper resolves paths containing spaces and refuses to stop the existing separate installation"
+    "Python syntax of launch_mac.py, prepare_mac.py, serve_local.py and build_and_sync.py",
+    "First-launch install of the page files (homepage, cheats, loader, game, io_worker, wgpu_worker) into a test mirror, with originals backed up once",
+    "Second launch changes nothing; prepare_mac.py --restore puts the originals back",
+    "Launcher falls back to a free port when 8000 is held by another server and leaves that server alone",
+    "Desktop shortcut creation (--install-shortcut)",
+    "Launch menu and Sandbox Mode run in Chrome on macOS from the supplied mirror (WebGPU)"
   ],
-  "browser_gameplay_in_this_package": "Not separately exercised; setup output matched the existing working local installation exactly.",
-  "tested_platform": "This Mac only; cross-Mac hardware playtesting remains unverified.",
+  "not_verified": [
+    "Full Story Mode playthrough",
+    "Other Macs and Intel hardware",
+    "Stop-Local.command on a fallback port while a game is running"
+  ],
   "mirror_assets_in_release": false
 }

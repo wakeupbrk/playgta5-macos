@@ -187,12 +187,19 @@ function dumpRecording() {
 // An overloaded host answers 503/500/429 (seen 2026-10-06: 10,000 visitors in a day, thousands of error responses, and the engine quits when a data file cannot be read): such an
 // answer, or none, is retried up to 8 times with growing, jittered waits (~20 s in all). Only the start of a response is retried (nothing of its body has been used yet).
 async function fetchRetry(url, init) {
+	// Stall guard (2026-10-20): a stopped or hung local server used to freeze the running game for good (fetch() never settled) or end it (the engine quits when a data file
+	// cannot be read). Each attempt now gives up after 30 s waiting for the response headers, and a data read keeps trying for ~5 minutes (the game waits, and carries on by itself
+	// when the server is back; the page shows a "server not responding" notice meanwhile) before the error reaches the engine.
 	for (let attempt = 0; ; attempt++) {
 		let res = null, err = null;
-		try { res = await fetch(url, init); } catch (e) { err = e; }
+		const ac = typeof AbortController !== 'undefined' && !(init && init.signal) ? new AbortController() : null;
+		const timer = ac ? setTimeout(() => ac.abort(), 30000) : 0;
+		try { res = await fetch(url, ac ? Object.assign({}, init, { signal: ac.signal }) : init); } catch (e) { err = e; }
+		if (timer) clearTimeout(timer);
 		if (res && res.status < 500 && res.status !== 429) return res;
-		if (attempt >= 7) { if (res) return res; throw err; }
+		if (attempt >= 60) { if (res) return res; throw err; }
 		netStat.retries = (netStat.retries || 0) + 1;
+		if (attempt === 3) log('[io] data server not answering (' + (res ? 'HTTP ' + res.status : err && err.name) + '): retrying for up to 5 minutes');
 		await new Promise((r) => setTimeout(r, Math.min(5000, 300 * 2 ** attempt) * (0.5 + Math.random())));
 	}
 }

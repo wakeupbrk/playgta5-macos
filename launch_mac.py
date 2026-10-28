@@ -82,6 +82,14 @@ def open_game():
             subprocess.Popen([NODE, str(BASE / "freeze_watch.mjs")], cwd=BASE, env={**os.environ, "GTAV_PORT": str(PORT)}, stdin=subprocess.DEVNULL, stdout=out, stderr=out, start_new_session=True)
 
 def start():
+    if "--install-shortcut" in sys.argv:
+        target = Path.home() / "Desktop/GTAV.app"
+        if target.exists() or target.is_symlink():
+            if target.resolve() != (BASE / "GTAV.app").resolve():
+                raise RuntimeError("A different Desktop GTAV.app already exists; it was preserved.")
+        else: target.symlink_to(BASE / "GTAV.app", target_is_directory=True)
+        print("Desktop GTAV shortcut ready.")
+        return
     if "--stop" in sys.argv:
         stop()
         return
