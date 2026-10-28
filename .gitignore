@@ -2,8 +2,8 @@ mirror/
 .mirror/
 work/
 outputs/
+snapshot/
+runtime/
 __pycache__/
-*.pyc
-*.part
-*.zip
+._*
 .DS_Store

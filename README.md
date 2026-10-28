@@ -1,49 +1,131 @@
-# playgta5 Source Code — macOS
-This code is grabbed from playgta5.com before it got took down. You can run this locally or make it public hehe.
+<div align="center">
 
-macOS adaptation of [shadany7824/playgta5](https://github.com/shadany7824/playgta5). The original README is preserved in `README-UPSTREAM.md`. This adaptation is independent of the original author.
+# GTA V for macOS
 
-# Credits
-Shoutout to Sebas Furbastian on Telegram for scrapping this code. Idk what is his GitHub but here's the Telegram and X.
+**Run the browser port of GTA V locally on a Mac, with a Story / Sandbox / Mods launch menu, persistent Story saves, a full cheat menu and a mod loader.**
 
-Telegram: @SebasKitten
+[![Stars](https://img.shields.io/github/stars/wakeupbrk/playgta5-macos?style=flat-square&color=f5b301)](https://github.com/wakeupbrk/playgta5-macos/stargazers)
+[![License](https://img.shields.io/github/license/wakeupbrk/playgta5-macos?style=flat-square)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-macOS-black?style=flat-square&logo=apple)
+![Browser](https://img.shields.io/badge/browser-Chrome%20(WebGPU)-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
+[![Telegram](https://img.shields.io/badge/chat-Telegram-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://t.me/playgta5regen)
 
-X: @Sebas_Kitten
+<img src="media/Screenshot 2026-10-07 172103.png" alt="GTA V running in Chrome on macOS" width="85%">
 
-# Disclaimer
-I don't host the `.\mirror` folder since it has copyrighted content from Rockstar Games. Please find the files by yourself.
+</div>
 
-No copyrighted file is included in this repo. If Rockstar Games or any affiliated group think this repo has copyright infringement things, email me at shadany7824@gmail.com for me to took it down.
+---
 
-And don't email me for asking the mirror folder. I will not reply to the email.
+## Features
 
-# How to use
-1. Download the ZIP or just `git clone` it. It should have all this file and folders.
-<p align="center">
-  <img src="media/Screenshot 2026-10-07 172103.png" alt="playgta5 SC">
-</p>
+| | |
+|---|---|
+| **Launch menu** | Pick **Story Mode** (`Enter`), **Sandbox Mode** (`Space`) or **Mods** (`M`) on the title screen while the engine loads behind it. |
+| **Story saves that persist** | Story autosaves are mirrored from the browser to `work/userdata/` (last 5 versions kept in `work/userdata-history/`), so clearing Chrome data does not wipe your progress. The menu shows your latest save and offers a new game. |
+| **Sandbox Mode** | Free roam on the GTA V map (or the experimental GTA VI test map) with every weapon. |
+| **Cheat menu** | Open it with `Cmd+X`. Vehicles (catalogue in `cheat-catalog.json`), paint, neon, plates, window tint, repair and handling, wanted level, weather, time of day, game speed, visual effects, loadout, ammo and damage, abilities, chaos, and more. |
+| **Mod loader** | Drop a folder in `mods/`, switch it on in the **Mods** screen. Script mods get a small `window.GTAV` API. See [mods/README.md](mods/README.md). |
+| **Mac launcher** | `GTAV.app` / `Launch-Mac.command` start a local server bound to `127.0.0.1:8000` and open Chrome. Your original files are backed up first and can be restored. |
+| **Open source chain** | The page code you play is built from readable sources (`src_trainer.js`, `src_cheats.js`) by `build_and_sync.py`. |
 
-2. Paste your `.mirror` folder next to `GTAV.app`. (It should have about 19.7 GB of file size.) Both `.mirror/playgta5.com/index.html` and `mirror/playgta5.com/index.html` are supported. Keep the extracted project folder in a permanent location, such as your Games folder.
+## Quick start
 
-3. Run `GTAV.app` or `Launch-Mac.command` and it will automatically open Google Chrome at `http://localhost:8000/`. Run `Install-Desktop.command` once if you want a one-button GTAV shortcut on your Desktop.
+1. **Clone** this repo (or download the ZIP) into a permanent folder, such as your Games folder.
 
-4. Voila!
+   ```bash
+   git clone https://github.com/wakeupbrk/playgta5-macos.git
+   ```
 
-# Requirement
-Scripts require standard-library Python 3.11 or newer and Google Chrome for macOS. Install Python from https://www.python.org/downloads/macos/ and Chrome from https://www.google.com/chrome/ if needed. No Windows runtime is bundled.
+2. **Add the game files.** Paste your `mirror` folder (about 19.7 GB) next to `GTAV.app`, so that `mirror/playgta5.com/index.html` exists. Both `mirror` and `.mirror` are accepted. The files are **not** included in this repo.
+3. **Launch.** Double-click `GTAV.app` or `Launch-Mac.command`. Chrome opens at `http://localhost:8000/`. Optionally run `Install-Desktop.command` once for a Desktop shortcut.
+4. **Play.** Choose Story, Sandbox or Mods. Click the game to capture the mouse.
 
-The launcher finds Python automatically on Apple Silicon and Intel Macs. Actual gameplay requires Chrome with WebGPU and 64-bit WebAssembly support. The tested machine is an Apple Silicon M1 Pro with 32 GB of RAM; other hardware has not been playtested. The HD profile targets 1920×1080 and 30 FPS; performance depends on the Mac and loading shaders can cause pauses.
+### Controls
 
-If macOS asks about an unsigned app, use Finder's Open action and follow macOS's approval prompt. If the launcher reports missing assets, check the folder layout in step 2. If port 8000 is busy, close the other server first. No assets are downloaded automatically.
+| Key | Action |
+|---|---|
+| `W` `A` `S` `D` | Move |
+| `F` | Enter / exit vehicle |
+| `Esc` | Release the mouse |
+| `Cmd+X` | Cheat menu |
+| `=` | Toggle FPS counter |
 
-# Mac setup
-The first launch backs up the supported original index and engine under `work/backups/mac-setup/`, applies the local HD profile, and starts a server bound only to `127.0.0.1:8000`. Original mirror files remain recoverable. Unsupported index versions are left untouched and reported; an unfamiliar engine is left unchanged.
+### Requirements
 
-The optional vehicle-glass workaround is enabled for the exact supported engine hash. It skips damaged-vehicle glass rendering to avoid the observed allocator crash. It is a workaround, not a repair of the engine allocator. Add `--no-glass-fix` when launching from Terminal to keep the original engine on a fresh installation. Use `python3 prepare_mac.py --restore` to restore files changed by this setup after closing game tabs and stopping the server. Existing profiles and unrelated Desktop items are preserved.
+- macOS on Apple Silicon or Intel
+- Google Chrome with **WebGPU** and 64-bit WebAssembly
+- Python 3.11 or newer (standard library only)
+- Tested on an Apple Silicon M1 Pro with 32 GB RAM. The HD profile targets 1920x1080 at 30 FPS; other hardware has not been playtested, and shader loading can cause pauses.
 
-Choose **Sandbox Mode → GTA V Map** for free roam, or Story Mode. Click the game for mouse control. WASD moves; F enters a car; Esc releases the mouse; = toggles the FPS counter. Keep one game tab open. Close game tabs and run `Stop-Local.command` to stop the server. Double-click GTAV to play again. Chrome savegames are preserved.
+## Mods
 
-Source revision: `a3bad032c92cf929d3f4fa2fb236ff0476878b51`. This package contains the public client source and macOS setup code, without the separate mirror assets. Original Windows-only screenshots are retained from the source repository. Full real-world playtesting on other Macs remains unverified.
+```
+mods/my-mod/
+  mod.json     name, version, author, description, entry, modes
+  main.js      optional script, runs in the game page when enabled
+  overrides/   optional loose web files served instead of the game's own
+```
 
-# Link
-Telegram: https://t.me/playgta5regen
+```js
+GTAV.registerMod('my-mod', {
+  onWorld() { GTAV.toast('Hello from my mod'); },
+  menu: [{ label: 'Max wanted', run() { GTAV.command('WANTED_MAX', 0, [0, 0, 0], ''); } }],
+});
+```
+
+Enabling or disabling a mod never edits game files. Copy `mods/_template` to start. Full API in [mods/README.md](mods/README.md).
+
+## Building from source
+
+Edit the sources, then regenerate the files the page loads:
+
+| Source | Output |
+|---|---|
+| `src_trainer.js` | `game.js` |
+| `src_cheats.js` | `cheats.js` |
+| `homepage.html` | mirror `index.html` |
+
+```bash
+python3 build_and_sync.py   # bump VERSION at the top first so Chrome drops its cache
+```
+
+Restart `serve_local.py` after server-side changes. Close any running game tab first: a second engine hurts FPS.
+
+## Project layout
+
+```
+GTAV.app/ Launch-Mac.command Stop-Local.command   Mac launchers
+prepare_mac.py launch_mac.py serve_local.py        setup, launcher, local server (isolation headers, byte ranges, batch I/O, saves, mods)
+loader.js io_worker.js wgpu_worker.js              engine loader and workers
+src_trainer.js src_cheats.js build_and_sync.py     trainer / cheat sources and the build step
+cheat-catalog.json                                 vehicle and skin catalogue
+mods/                                              mod loader content and template
+INVESTIGATION.md ENGINE_INVESTIGATION.md           notes on the engine and assets
+```
+
+## Troubleshooting
+
+- **macOS blocks the app:** use Finder's **Open** action and follow the approval prompt.
+- **Launcher reports missing assets:** check the `mirror/playgta5.com/index.html` layout from step 2.
+- **Port 8000 is busy:** close the other server, or run `Stop-Local.command`.
+- **Game stutters at first:** shaders compile as you go; it settles.
+- **Undo the setup:** close game tabs, stop the server, then `python3 prepare_mac.py --restore`.
+- **Vehicle crash:** an optional glass workaround skips damaged-vehicle glass rendering (allocator crash). Pass `--no-glass-fix` to keep the original engine.
+
+## Roadmap
+
+- [ ] More story missions verified and fixed
+- [ ] Mod browser and more example mods
+- [ ] Playtesting on more Macs (please open an issue with your results)
+
+## Credits
+
+- Based on [shadany7824/playgta5](https://github.com/shadany7824/playgta5); the original README is kept in [README-UPSTREAM.md](README-UPSTREAM.md). This project is independent of the original author.
+- Shoutout to Sebas Furbastian for scraping the code: Telegram [@SebasKitten](https://t.me/SebasKitten), X [@Sebas_Kitten](https://x.com/Sebas_Kitten).
+- Community: [t.me/playgta5regen](https://t.me/playgta5regen)
+
+## Disclaimer
+
+No copyrighted file is included in this repo, and the `mirror` folder is not hosted here. Grand Theft Auto is a trademark of Rockstar Games / Take-Two Interactive; this project is unofficial and not affiliated with them. If Rockstar Games or an affiliated party believes this repo infringes, open an issue or contact the owner and it will be taken down. Please do not ask for the mirror folder.
+
+Code in this repo is released under the [MIT License](LICENSE).
