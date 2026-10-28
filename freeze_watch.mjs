@@ -12,6 +12,7 @@ const LOG = path.join(WORK, 'game-diagnostics.log');
 const OUT = path.join(WORK, 'freeze-captures');
 const NOW_FLAG = path.join(WORK, 'freeze-capture.now');
 const PORT = 9222;
+const SERVER_PORT = process.env.GTAV_PORT || '8000';
 const say = (m) => { try { fs.appendFileSync(path.join(WORK, 'freeze-watch.log'), new Date().toISOString() + ' ' + m + '\n'); } catch (e) {} };
 
 let ws = null, nextId = 1, pageSession = '';
@@ -54,7 +55,7 @@ async function connect() {
 async function attachPage() {
 	for (;;) {
 		const r = await send('Target.getTargets');
-		const page = (r.result && r.result.targetInfos || []).find((t) => t.type === 'page' && /localhost:8000/.test(t.url));
+		const page = (r.result && r.result.targetInfos || []).find((t) => t.type === 'page' && new RegExp('localhost:' + SERVER_PORT + '/').test(t.url));
 		if (page) {
 			const a = await send('Target.attachToTarget', { targetId: page.targetId, flatten: true });
 			if (a.result) { pageSession = a.result.sessionId; sessions.set(pageSession, { type: 'page', url: page.url, title: page.title }); await send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: false, flatten: true }, pageSession); say('attached to the game page, ' + (sessions.size) + ' targets'); return; }
@@ -87,7 +88,7 @@ async function capture(reason) {
 	listeners.splice(listeners.indexOf(onEvent), 1);
 	fs.writeFileSync(file, lines.join('\n') + '\n');
 	say('capture written: ' + file + ' (' + paused.size + '/' + workers.length + ' paused)');
-	try { await fetch('http://localhost:8000/log', { method: 'POST', body: '[page] FREEZE CAPTURE written: ' + file + ' (' + paused.size + '/' + workers.length + ' threads paused)' }); } catch (e) {}
+	try { await fetch('http://localhost:' + SERVER_PORT + '/log', { method: 'POST', body: '[page] FREEZE CAPTURE written: ' + file + ' (' + paused.size + '/' + workers.length + ' threads paused)' }); } catch (e) {}
 }
 
 // ---- freeze detection from the diagnostics log ----------------------------------------------------------------------------------------------------------------------

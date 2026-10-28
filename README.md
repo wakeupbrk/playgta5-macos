@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/wakeupbrk/playgta5-macos?style=flat-square)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS-black?style=flat-square&logo=apple)
 ![Browser](https://img.shields.io/badge/browser-Chrome%20(WebGPU)-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
-[![Telegram](https://img.shields.io/badge/chat-Telegram-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://t.me/playgta5regen)
+[![Telegram](https://img.shields.io/badge/chat-Telegram-26A5E4?style=flat-square&logo=telegram&logoColor=white)](https://t.me/wakeupbrkgc)
 
 <img src="media/Screenshot 2026-10-07 172103.png" alt="GTA V running in Chrome on macOS" width="85%">
 
@@ -37,7 +37,7 @@
    ```
 
 2. **Add the game files.** Paste your `mirror` folder (about 19.7 GB) next to `GTAV.app`, so that `mirror/playgta5.com/index.html` exists. Both `mirror` and `.mirror` are accepted. The files are **not** included in this repo.
-3. **Launch.** Double-click `GTAV.app` or `Launch-Mac.command`. The first launch installs this repo's page files (launch menu, trainer, cheats, loader) into your `mirror` folder, saving the originals under `work/backups/mac-setup/` first. Chrome then opens at `http://localhost:8000/`. Optionally run `Install-Desktop.command` once for a Desktop shortcut.
+3. **Launch.** Double-click `GTAV.app` or `Launch-Mac.command`. The first launch installs this repo's page files (launch menu, trainer, cheats, loader) into your `mirror` folder, saving the originals under `work/backups/mac-setup/` first. Chrome then opens at `http://localhost:8000/`, or on another free port if 8000 is busy (the port used is shown in the terminal and saved in `work/server-port`). Optionally run `Install-Desktop.command` once for a Desktop shortcut.
 4. **Play.** Choose Story, Sandbox or Mods. Click the game to capture the mouse.
 
 ### Controls
@@ -107,7 +107,7 @@ INVESTIGATION.md ENGINE_INVESTIGATION.md           notes on the engine and asset
 
 - **macOS blocks the app:** use Finder's **Open** action and follow the approval prompt.
 - **Launcher reports missing assets:** check the `mirror/playgta5.com/index.html` layout from step 2.
-- **Port 8000 is busy:** close the other server, or run `Stop-Local.command`.
+- **Port 8000 is busy:** nothing to do; the launcher picks another free port automatically. `Stop-Local.command` stops the GTAV server.
 - **Game stutters at first:** shaders compile as you go; it settles.
 - **Undo the setup:** close game tabs, stop the server, then `python3 prepare_mac.py --restore` (puts the original mirror files back; saves are kept).
 - **Skip the install step:** launch with `--skip-setup` from Terminal if you manage the mirror yourself.
@@ -123,7 +123,7 @@ INVESTIGATION.md ENGINE_INVESTIGATION.md           notes on the engine and asset
 
 - Based on [shadany7824/playgta5](https://github.com/shadany7824/playgta5); the original README is kept in [README-UPSTREAM.md](README-UPSTREAM.md). This project is independent of the original author.
 - Shoutout to Sebas Furbastian for scraping the code: Telegram [@SebasKitten](https://t.me/SebasKitten), X [@Sebas_Kitten](https://x.com/Sebas_Kitten).
-- Community: [t.me/playgta5regen](https://t.me/playgta5regen)
+- Community: [t.me/wakeupbrkgc](https://t.me/wakeupbrkgc)
 
 ## Disclaimer
 

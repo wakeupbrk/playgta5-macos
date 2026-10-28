@@ -1,18 +1,58 @@
 """One-click GTAV launcher. Starts a local-only server independently of Terminal."""
-import fcntl, json, os, socket, subprocess, sys, time
+import fcntl, json, os, signal, socket, subprocess, sys, time
 from pathlib import Path
 from urllib.request import urlopen
 BASE = Path(__file__).resolve().parent
-ADDRESS = "http://localhost:8000/"
+PREFERRED_PORT = 8000
 WORK = BASE / "work"
 WORK.mkdir(exist_ok=True)
+PORT_FILE = WORK / "server-port"
+PORT = PREFERRED_PORT
+ADDRESS = "http://localhost:%d/" % PORT
+
+def use_port(port):
+    global PORT, ADDRESS
+    PORT, ADDRESS = port, "http://localhost:%d/" % port
+
+def health(port):
+    try:
+        with urlopen("http://localhost:%d/__gtav_health" % port, timeout=2) as response:
+            return json.load(response)
+    except (OSError, ValueError):
+        return None
 
 def healthy():
-    try:
-        with urlopen(ADDRESS + "__gtav_health", timeout=2) as response:
-            return json.load(response).get("project") == str(BASE)
-    except (OSError, ValueError):
-        return False
+    state = health(PORT)
+    return bool(state) and state.get("project") == str(BASE)
+
+def port_free(port):
+    with socket.socket() as probe:
+        return probe.connect_ex(("127.0.0.1", port)) != 0
+
+def free_port():
+    """Port 8000 when it is free, otherwise any free port the system hands out."""
+    if port_free(PREFERRED_PORT): return PREFERRED_PORT
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]
+
+def running_port():
+    """The port of an already running GTAV server of this project, if any (last used port first)."""
+    saved = int(PORT_FILE.read_text()) if PORT_FILE.exists() and PORT_FILE.read_text().strip().isdigit() else None
+    for port in dict.fromkeys([saved, PREFERRED_PORT]):
+        state = port and health(port)
+        if state and state.get("project") == str(BASE): return port
+    return None
+
+def stop():
+    port = running_port()
+    state = health(port) if port else None
+    if not state:
+        print("GTAV is already stopped.")
+        return
+    os.kill(int(state["pid"]), signal.SIGTERM)
+    PORT_FILE.unlink(missing_ok=True)
+    print("GTAV local server stopped.")
 
 
 PROFILE = WORK / "chrome-profile"
@@ -39,21 +79,25 @@ def open_game():
         subprocess.run(["/usr/bin/open", "-a", "Google Chrome", ADDRESS], check=True)
     if NODE and subprocess.run(["/usr/bin/pgrep", "-f", "freeze_watch.mjs"], capture_output=True).returncode != 0:
         with (WORK / "freeze-watch.out").open("ab") as out:
-            subprocess.Popen([NODE, str(BASE / "freeze_watch.mjs")], cwd=BASE, stdin=subprocess.DEVNULL, stdout=out, stderr=out, start_new_session=True)
+            subprocess.Popen([NODE, str(BASE / "freeze_watch.mjs")], cwd=BASE, env={**os.environ, "GTAV_PORT": str(PORT)}, stdin=subprocess.DEVNULL, stdout=out, stderr=out, start_new_session=True)
 
 def start():
+    if "--stop" in sys.argv:
+        stop()
+        return
     if "--skip-setup" not in sys.argv:
         import prepare_mac
         prepare_mac.prepare("--no-glass-fix" not in sys.argv)
     with (WORK / "launch.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        if not healthy():
-            # Never terminate or open an unrelated service occupying the requested port.
-            with socket.socket() as check:
-                if check.connect_ex(("127.0.0.1", 8000)) == 0:
-                    raise RuntimeError("Port 8000 is occupied by another server. Close that server and launch GTAV again.")
+        running = running_port()
+        if running: use_port(running)
+        else:
+            # Never terminate or open an unrelated service occupying a port: take a free one instead.
+            use_port(free_port())
+            if PORT != PREFERRED_PORT: print("Port %d is busy; using port %d instead." % (PREFERRED_PORT, PORT))
             with (WORK / "local-server.log").open("ab") as log:
-                child = subprocess.Popen([sys.executable, str(BASE / "serve_local.py")], cwd=BASE,
+                child = subprocess.Popen([sys.executable, str(BASE / "serve_local.py"), "--port", str(PORT)], cwd=BASE,
                     stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
                 (WORK / "local-server.pid").write_text(str(child.pid) + "\n")
             for _ in range(100):
@@ -63,6 +107,7 @@ def start():
                 time.sleep(0.1)
             else:
                 raise RuntimeError("The local server did not become ready. See work/local-server.log.")
+        PORT_FILE.write_text(str(PORT) + "\n")
     if "--server-only" not in sys.argv:
         open_game()
     print("GTAV ready at " + ADDRESS)
