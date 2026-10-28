@@ -7,3 +7,6 @@ runtime/
 __pycache__/
 ._*
 .DS_Store
+*.pyc
+*.part
+*.zip
